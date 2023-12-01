@@ -1,0 +1,22 @@
+v1.00 features:
+-Localization added for this release, only enUS and esMX added so far, if someone wants to make the others and send to me?
+--Find Mesostealthy-Dentarg in-game and let me know what languages you would like to help with.
+-New setting to stop players from using the /ping system if they do not have Raid Assist or Raid Lead! (Raid Leaders & Assistants only.)
+-New setting to warn you if your queue becomes paused. Group Leader gets a Raid Warning message, others get normal message.
+-New setting to adjust vehicle turn speed while inside a Battleground. Allows for faster vehicle turning!
+-Auto Raid Warning when Captain Balinda Stonehearth is engaged in combat, Alliance. (Raid Leader issues /RW, otherwise local warning only!)
+-Auto Raid Warning when Captain Galvangar is engaged in combatm, Horde. (Raid Leader issues /RW, otherwise local warning only!)
+-Refresh Database added for options to just refresh the members in communites without rebuilding entirely.
+-Added some debugging stuff to help debug various issues. (Requires Debug Mode Enabled in Options!)
+-Now monitors for when your queues become paused / unpaused and issues an alert to Group Leader.
+-When queue becomes paused, it checks for anyone that's offline to be Kicked for Group Leader.
+-Whisper commands only respond to senders that are in your same communities now.
+-Some Players in database had a "space" in their name, spaces now are removed.
+-Saves last completed date / time when player is inside a community Epic Battleground.
+-Saves last grouped date / time when player is inside a community Epic Battleground.
+-Saves counter for number of grouped community Epic Battlegrounds for players.
+-Saves last seen date / time when player were last seen online in database.
+-/comf defaults will set all profile settings back to defaults.
+-Added build number to the options title bar for minor updates.
+-BUGFIX: Community Count when gate opens *SHOULD* be fixed!
+-Bumped TOC to v10.2.0
