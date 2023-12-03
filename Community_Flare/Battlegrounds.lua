@@ -534,7 +534,8 @@ function NS.CommunityFlare_Process_Community_Members()
 	NS.CommFlare.CF.CommNamesList = {}
 
 	-- initialize mercenary stuff
-	NS.CommFlare.CF.MercsCount = 0
+	NS.CommFlare.CF.MercCount = 0
+	NS.CommFlare.CF.MercCounts = {}
 	NS.CommFlare.CF.MercNames = {}
 	NS.CommFlare.CF.MercNamesList = {}
 
@@ -617,7 +618,7 @@ function NS.CommunityFlare_Process_Community_Members()
 			-- get community member
 			local member = NS.CommunityFlare_GetCommunityMember(player)
 			if (member ~= nil) then
-				-- counts setup?
+				-- community counts setup?
 				clubId = next(member.clubs)
 				if (not NS.CommFlare.CF.CommCounts[clubId]) then
 					-- initialize
@@ -628,6 +629,13 @@ function NS.CommunityFlare_Process_Community_Members()
 				if (not NS.CommFlare.CF.CommNames[clubId]) then
 					-- initialize
 					NS.CommFlare.CF.CommNames[clubId] = {}
+				end
+
+				-- mercinary counts setup?
+				clubId = next(member.clubs)
+				if (not NS.CommFlare.CF.MercCounts[clubId]) then
+					-- initialize
+					NS.CommFlare.CF.MercCounts[clubId] = 0
 				end
 
 				-- mercinary names setup?
@@ -656,7 +664,8 @@ function NS.CommunityFlare_Process_Community_Members()
 						-- update stuff
 						tinsert(NS.CommFlare.CF.MercNamesList, member.name)
 						tinsert(NS.CommFlare.CF.MercNames[clubId], member.name)
-						NS.CommFlare.CF.MercsCount = NS.CommFlare.CF.MercsCount + 1
+						NS.CommFlare.CF.MercCount = NS.CommFlare.CF.MercCount + 1
+						NS.CommFlare.CF.MercCounts[clubId] = NS.CommFlare.CF.MercCounts[clubId] + 1
 					end
 				-- player is horde?
 				elseif (NS.CommFlare.CF.PlayerFaction == L["Horde"]) then
@@ -665,7 +674,8 @@ function NS.CommunityFlare_Process_Community_Members()
 						-- update stuff
 						tinsert(NS.CommFlare.CF.MercNamesList, member.name)
 						tinsert(NS.CommFlare.CF.MercNames[clubId], member.name)
-						NS.CommFlare.CF.MercsCount = NS.CommFlare.CF.MercsCount + 1
+						NS.CommFlare.CF.MercCount = NS.CommFlare.CF.MercCount + 1
+						NS.CommFlare.CF.MercCounts[clubId] = NS.CommFlare.CF.MercCounts[clubId] + 1
 					else
 						-- update stuff
 						tinsert(NS.CommFlare.CF.CommNamesList, member.name)
@@ -709,7 +719,7 @@ function NS.CommunityFlare_Process_Community_Members()
 	end
 
 	-- has mercenaries?
-	if (NS.CommFlare.CF.MercsCount > 0) then
+	if (NS.CommFlare.CF.MercCount > 0) then
 		-- sort mercinary names
 		for k,v in pairs(NS.CommFlare.CF.MercNames) do
 			-- sort club names
@@ -770,8 +780,8 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 		timer = timer + 0.1
 	end
 
-	-- has mercenaries?
-	if (NS.CommFlare.CF.MercsCount > 0) then
+	-- has mercenary players?
+	if (NS.CommFlare.CF.MercCount > 0) then
 		-- display community names?
 		if (NS.db.profile.communityDisplayNames == true) then
 			-- build mercenary list
@@ -801,10 +811,42 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			end
 		end
 
+		-- found mercenary counts?
+		if (NS.CommFlare.CF.MercCounts and next(NS.CommFlare.CF.MercCounts)) then
+			-- build count list
+			local list = nil
+			for k,v in pairs(NS.CommFlare.CF.MercCounts) do
+				-- has community?
+				if (NS.db.global.clubs[k] and NS.db.global.clubs[k].name) then
+					-- add to list
+					if (list == nil) then
+						list = NS.db.global.clubs[k].name .. " = " .. v
+					else
+						list = list .. ", " .. NS.db.global.clubs[k].name .. " = " .. v
+					end
+				end
+			end
+
+			-- found list?
+			if (list ~= nil) then
+				-- should print?
+				if (isPrint == true) then
+					-- display results staggered
+					TimerAfter(timer, function()
+						-- display community counts
+						print(strformat(L["Mercenary Counts: %s"], list))
+					end)
+
+					-- next
+					timer = timer + 0.1
+				end
+			end
+		end
+
 		-- display results staggered
 		TimerAfter(timer, function()
 			-- display mercs count
-			print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercsCount))
+			print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercCount))
 		end)
 
 		-- next
@@ -833,7 +875,7 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 					-- display results staggered
 					TimerAfter(timer, function()
 						-- display community members
-						print(strformat("%s: %s", L["Community Members"], list))
+						print(strformat(L["Community Members: %s"], list))
 					end)
 
 					-- next
@@ -841,48 +883,48 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 				end
 			end
 		end
-	end
 
-	-- found community counts?
-	if (NS.CommFlare.CF.CommCounts and next(NS.CommFlare.CF.CommCounts)) then
-		-- build count list
-		local list = nil
-		for k,v in pairs(NS.CommFlare.CF.CommCounts) do
-			-- has community?
-			if (NS.db.global.clubs[k] and NS.db.global.clubs[k].name) then
-				-- add to list
-				if (list == nil) then
-					list = NS.db.global.clubs[k].name .. " = " .. v
-				else
-					list = list .. ", " .. NS.db.global.clubs[k].name .. " = " .. v
+		-- found community counts?
+		if (NS.CommFlare.CF.CommCounts and next(NS.CommFlare.CF.CommCounts)) then
+			-- build count list
+			local list = nil
+			for k,v in pairs(NS.CommFlare.CF.CommCounts) do
+				-- has community?
+				if (NS.db.global.clubs[k] and NS.db.global.clubs[k].name) then
+					-- add to list
+					if (list == nil) then
+						list = NS.db.global.clubs[k].name .. " = " .. v
+					else
+						list = list .. ", " .. NS.db.global.clubs[k].name .. " = " .. v
+					end
+				end
+			end
+
+			-- found list?
+			if (list ~= nil) then
+				-- should print?
+				if (isPrint == true) then
+					-- display results staggered
+					TimerAfter(timer, function()
+						-- display community counts
+						print(strformat(L["Community Counts: %s"], list))
+					end)
+
+					-- next
+					timer = timer + 0.1
 				end
 			end
 		end
 
-		-- found list?
-		if (list ~= nil) then
-			-- should print?
-			if (isPrint == true) then
-				-- display results staggered
-				TimerAfter(timer, function()
-					-- display community counts
-					print(strformat(L["Community Counts: %s"], list))
-				end)
+		-- display results staggered
+		TimerAfter(timer, function()
+			-- display community count
+			print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
+		end)
 
-				-- next
-				timer = timer + 0.1
-			end
-		end
+		-- next
+		timer = timer + 0.1
 	end
-
-	-- display results staggered
-	TimerAfter(timer, function()
-		-- display community count
-		print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
-	end)
-
-	-- next
-	timer = timer + 0.1
 end
 
 -- match started, log roster

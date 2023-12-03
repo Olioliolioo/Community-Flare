@@ -1,3 +1,7 @@
+v1.02 features:
+-Removed esMX language from Locales loading, was just there for testing purposes before.
+-When gates open, Mercenary names will show counts from communities now.
+
 v1.01 features:
 -Added ability to obtain CF data to other CF users in the same Main Community.
 -Updated some Locales strings and converted some more.

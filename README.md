@@ -16,3 +16,14 @@ The core features include:
 - Base code for different Locales, so far, only enUS added for support. (If you want to translate to others, please contact Mesostealthy in Alterac Valley Maniacs, or comment down below.)
 
 Quite a few other Quality of Life features and/or parts of the above core that improve your Community Battleground queuing experience.
+
+-----------------------
+Latest Updates:
+-----------------------
+v1.02 features:
+-Removed esMX language from Locales loading, was just there for testing purposes before.
+-When gates open, Mercenary names will show counts from communities now.
+
+v1.01 features:
+-Added ability to obtain CF data to other CF users in the same Main Community.
+-Updated some Locales strings and converted some more.
