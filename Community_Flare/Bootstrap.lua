@@ -90,6 +90,7 @@ NS.CommFlare.CF = {
 	CommNames = {},
 	CommNamesList = {},
 	CommunityLeaders = {},
+	InternalCommands = {},
 	LogListNamesList = {},
 	MapInfo = {},
 	MemberInfo = {},

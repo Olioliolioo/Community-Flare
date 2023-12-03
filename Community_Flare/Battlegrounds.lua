@@ -937,7 +937,7 @@ end
 -- process pass leadership
 function NS.CommunityFlare_Process_Pass_Leadership(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
 		-- finished
 		return
 	end
@@ -1010,7 +1010,7 @@ end
 -- process auto invite
 function NS.CommunityFlare_Process_Auto_Invite(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender, false) == false) then
 		-- finished
 		return
 	end
@@ -1106,7 +1106,7 @@ end
 -- process status check
 function NS.CommunityFlare_Process_Status_Check(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
 		-- finished
 		return
 	end

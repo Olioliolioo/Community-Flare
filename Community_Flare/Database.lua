@@ -1174,7 +1174,7 @@ function NS.CommunityFlare_IsCommunityMember(name)
 end
 
 -- has shared community?
-function NS.CommunityFlare_HasSharedCommunity(sender)
+function NS.CommunityFlare_HasSharedCommunity(sender, must_share_main)
 	-- not loaded?
 	if (not NS.CommFlare or not NS.db) then
 		-- failed
@@ -1212,20 +1212,30 @@ function NS.CommunityFlare_HasSharedCommunity(sender)
 		return false
 	end
 
-	-- find player in database
-	local player = NS.CommunityFlare_GetPlayerName("full")
-	local member1 = NS.CommunityFlare_GetCommunityMember(player)
-	if (not member1 or not member1.clubs) then
-		-- failed
-		return false
-	end
-
-	-- process player clubs
-	for k,v in pairs(member1.clubs) do
-		-- club exists for sender?
-		if (member2.clubs and member2.clubs[k]) then
+	-- must share main community?
+	if (must_share_main == true) then
+		-- has shared main community?
+		local clubId = NS.db.profile.communityMain
+		if (clubId and (clubId > 1) and member2.clubs and member2.clubs[clubId]) then
 			-- success
 			return true
+		end
+	else
+		-- find player in database
+		local player = NS.CommunityFlare_GetPlayerName("full")
+		local member1 = NS.CommunityFlare_GetCommunityMember(player)
+		if (not member1 or not member1.clubs) then
+			-- failed
+			return false
+		end
+
+		-- process player clubs
+		for k,v in pairs(member1.clubs) do
+			-- club exists for sender?
+			if (member2.clubs and member2.clubs[k]) then
+				-- success
+				return true
+			end
 		end
 	end
 

@@ -19,9 +19,17 @@ local ChatFrame_AddChannel                      = _G.ChatFrame_AddChannel
 local ChatFrame_AddNewCommunitiesChannel        = _G.ChatFrame_AddNewCommunitiesChannel
 local ChatFrame_RemoveChannel                   = _G.ChatFrame_RemoveChannel
 local ChatFrame_RemoveCommunitiesChannel        = _G.ChatFrame_RemoveCommunitiesChannel
+local FCF_UnDockFrame                           = _G.FCF_UnDockFrame
+local GetBattlefieldEstimatedWaitTime           = _G.GetBattlefieldEstimatedWaitTime
+local GetBattlefieldInstanceRunTime             = _G.GetBattlefieldInstanceRunTime
+local GetBattlefieldPortExpiration              = _G.GetBattlefieldPortExpiration
+local GetBattlefieldStatus                      = _G.GetBattlefieldStatus
+local GetBattlefieldTimeWaited                  = _G.GetBattlefieldTimeWaited
 local GetChannelName                            = _G.GetChannelName
+local GetMaxBattlefieldID                       = _G.GetMaxBattlefieldID
 local GetNumGroupMembers                        = _G.GetNumGroupMembers
 local GetNumSubgroupMembers                     = _G.GetNumSubgroupMembers
+local HideUIPanel                               = _G.HideUIPanel
 local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local PromoteToLeader                           = _G.PromoteToLeader
@@ -39,10 +47,14 @@ local UnitName                                  = _G.UnitName
 local AuraUtilForEachAura                       = _G.AuraUtil.ForEachAura
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
+local PvPGetActiveMatchDuration                 = _G.C_PvP.GetActiveMatchDuration
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
 local TimerAfter                                = _G.C_Timer.After
 local pairs                                     = _G.pairs
+local time                                      = _G.time
+local tonumber                                  = _G.tonumber
 local type                                      = _G.type
+local mfloor                                    = _G.math.floor
 local strformat                                 = _G.string.format
 local strgmatch                                 = _G.string.gmatch
 local strmatch                                  = _G.string.match
@@ -690,7 +702,7 @@ end
 -- process version check
 function NS.CommunityFlare_Process_Version_Check(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender, false) == false) then
 		-- finished
 		return
 	end
@@ -799,4 +811,275 @@ function NS.CommunityFlare_Process_Party_States(isDead, isOffline)
 			end
 		end
 	end
+end
+
+-- hide chat frame
+function NS.CommunityFlare_Hide_Chat_Frame(sender)
+	-- build proper name
+	local player = sender
+	if (strmatch(player, "-")) then
+		-- remove realm name
+		player = strsplit("-", player)
+	end
+
+	-- process all chat frames
+	for k,v in pairs(CHAT_FRAMES) do
+		-- find frame + tab
+		local chatFrame = _G[v];
+		local chatTab = _G[v .. "Tab"]
+		if (chatTab and chatTab.whisperName) then
+			-- matches?
+			if (strmatch(chatTab.whisperName, player)) then
+				-- hide
+				chatFrame:Hide()
+				chatTab:Hide()
+				FCF_UnDockFrame(chatFrame);
+				HideUIPanel(chatFrame);
+			end
+		end
+	end
+end
+
+-- handle internal commands
+function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
+	-- no shared community?
+	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
+		-- supress
+		return true
+	end
+
+	-- always hide chat frame
+	NS.CommunityFlare_Hide_Chat_Frame(sender)
+
+	-- suppress all inform
+	if (event == "CHAT_MSG_WHISPER_INFORM") then
+		-- supress
+		return true
+	end
+
+	-- table initialized?
+	if (not NS.CommFlare.CF.InternalCommands[sender]) then
+		-- initialize
+		NS.CommFlare.CF.InternalCommands[sender] = {}
+	end
+
+	-- split text
+	local args = {strsplit("@", text)}
+	if (args and args[1] and args[2]) then
+		-- verify args[1]
+		if (args[1] == "!CF") then
+			-- battleground?
+			local lower = strlower(args[2])
+			if ((lower == "battleground") and args[3]) then
+				-- command already sent?
+				local command = strlower(args[3])
+				if (NS.CommFlare.CF.InternalCommands[sender][command]) then
+					-- suppress
+					return true
+				end
+
+				-- sanity check
+				if ((command ~= "check") and (command ~= "status")) then
+					-- suppress
+					return true
+				end
+
+				-- command sent
+				NS.CommFlare.CF.InternalCommands[sender][command] = time()
+				TimerAfter(5, function ()
+					-- clear 5 seconds
+					NS.CommFlare.CF.InternalCommands[sender][command] = nil
+				end)
+
+				-- check?
+				if (command == "check") then
+					-- find active battleground
+					local text = ""
+					for i=1, GetMaxBattlefieldID() do
+						-- active match?
+						local status, mapName = GetBattlefieldStatus(i)
+
+						-- has status to send?
+						if ((status == "active") or (status == "confirm") or (status == "queued")) then
+							-- already has text?
+							if (text ~= "") then
+								-- add separator
+								text = text .. ";"
+							end
+						end
+
+						-- active?
+						if (status == "active") then
+							-- add bg info
+							local runtime = GetBattlefieldInstanceRunTime()
+							local duration = PvPGetActiveMatchDuration() * 1000
+							text = text .. strformat("A,%s,%d,%d", mapName, duration, runtime)
+						-- confirm?
+						elseif (status == "confirm") then
+							-- add pop info
+							local count = NS.CommunityFlare_GetGroupCount()
+							local expiration = GetBattlefieldPortExpiration(i) * 1000
+							text = text .. strformat("C,%s,%d,%d", mapName, expiration, count)
+						-- queued?
+						elseif (status == "queued") then
+							-- add queue info
+							local waited = GetBattlefieldTimeWaited(i)
+							local estimated = GetBattlefieldEstimatedWaitTime(i)
+							text = text .. strformat("Q,%s,%d,%d", mapName, waited, estimated)
+						end
+					end
+
+					-- nothing?
+					if (text == "") then
+						-- none
+						text = "none"
+					end
+
+					-- send message
+					NS.CommunityFlare_SendMessage(sender, strformat("!CF@Battleground@Status@%s", text))
+				-- status?
+				elseif ((command == "status") and args[4]) then
+					-- none?
+					if (args[4] == "none") then
+						-- display sender is not in queue
+						print(strformat(L["%s: %s is not in queue."], NS.CommunityFlare_Title, sender))
+					else
+						-- split arguments
+						local queues = {strsplit(";", args[4])}
+						for k,v in ipairs(queues) do
+							-- display sender queue info
+							local status, mapName, arg1, arg2 = strsplit(",", v)
+
+							-- active?
+							if (status == "A") then
+								-- calculate times
+								local msecs = { tonumber(arg1), tonumber(arg2) }
+								local seconds = { mfloor(msecs[1] / 1000), mfloor(msecs[2] / 1000) }
+								local minutes = { mfloor(seconds[1] / 60), mfloor(seconds[2] / 60) }
+								seconds[1] = seconds[1] - (minutes[1] * 60)
+								seconds[2] = seconds[2] - (minutes[2] * 60)
+
+								-- display bg info
+								print(strformat(L["%s: %s is active for %s for %d minutes, %d seconds. (Active Time: %d minutes, %d seconds.)"], NS.CommunityFlare_Title, sender, mapName, minutes[1], seconds[1], minutes[2], seconds[2]))
+							-- confirm?
+							elseif (status == "C") then
+								-- calculate times
+								local msecs = { tonumber(arg1) }
+								local seconds = { mfloor(msecs[1] / 1000) }
+								local minutes = { mfloor(seconds[1] / 60) }
+								seconds[1] = seconds[1] - (minutes[1] * 60)
+
+								-- display pop info
+								print(strformat(L["%s: %s is popped for %s for %d minutes, %d seconds. (Count: %s.)"], NS.CommunityFlare_Title, sender, mapName, minutes[1], seconds[1], arg2))
+							-- queued?
+							elseif (status == "Q") then
+								-- calculate times
+								local msecs = { tonumber(arg1), tonumber(arg2) }
+								local seconds = { mfloor(msecs[1] / 1000), mfloor(msecs[2] / 1000) }
+								local minutes = { mfloor(seconds[1] / 60), mfloor(seconds[2] / 60) }
+								seconds[1] = seconds[1] - (minutes[1] * 60)
+								seconds[2] = seconds[2] - (minutes[2] * 60)
+
+								-- display queue info
+								print(strformat(L["%s: %s is queued for %s for %d minutes, %d seconds. (Estimated Wait: %d minutes, %d seconds.)"], NS.CommunityFlare_Title, sender, mapName, minutes[1], seconds[1], minutes[2], seconds[2]))
+							end
+						end
+					end
+				end
+			-- mercenary?
+			elseif ((lower == "mercenary") and args[3]) then
+				-- command already sent?
+				local command = strlower(args[3])
+				if (NS.CommFlare.CF.InternalCommands[sender][command]) then
+					-- suppress
+					return true
+				end
+
+				-- sanity check
+				if ((command ~= "check") and (command ~= "status")) then
+					-- suppress
+					return true
+				end
+
+				-- command sent
+				NS.CommFlare.CF.InternalCommands[sender][command] = time()
+				TimerAfter(5, function ()
+					-- clear 5 seconds
+					NS.CommFlare.CF.InternalCommands[sender][command] = nil
+				end)
+
+				-- check?
+				if (command == "check") then
+					-- check for mercenary buff
+					NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+					if (NS.CommFlare.CF.HasAura == true) then
+						-- send message
+						NS.CommunityFlare_SendMessage(sender, "!CF@Mercenary@Status@true")
+					else
+						-- send message
+						NS.CommunityFlare_SendMessage(sender, "!CF@Mercenary@Status@false")
+					end
+				-- status?
+				elseif ((command == "status") and args[4]) then
+					-- check status
+					local status = strlower(args[4])
+					if (status == "true") then
+						-- mercenary enabled
+						print(strformat(L["%s: %s has Mercenary Contract enabled."], NS.CommunityFlare_Title, sender))
+					elseif (status == "false") then
+						-- mercenary disabled
+						print(strformat(L["%s: %s has Mercenary Contract disabled."], NS.CommunityFlare_Title, sender))
+					end
+				end
+			-- party?
+			elseif ((lower == "party") and args[3]) then
+				-- command already sent?
+				local command = strlower(args[3])
+				if (NS.CommFlare.CF.InternalCommands[sender][command]) then
+					-- suppress
+					return true
+				end
+
+				-- sanity check
+				if ((command ~= "check") and (command ~= "status")) then
+					-- suppress
+					return true
+				end
+
+				-- command sent
+				NS.CommFlare.CF.InternalCommands[sender][command] = time()
+				TimerAfter(5, function ()
+					-- clear 5 seconds
+					NS.CommFlare.CF.InternalCommands[sender][command] = nil
+				end)
+
+				-- check?
+				if (command == "check") then
+					-- send party info
+					local isRaid = IsInRaid() and "true" or "false"
+					local isGroup = IsInGroup() and "true" or "false"
+					local numGroupMembers = GetNumGroupMembers()
+					local numSubgroupMembers = GetNumSubgroupMembers()
+					NS.CommunityFlare_SendMessage(sender, strformat("!CF@Party@Status@%s,%s,%d,%d", isRaid, isGroup, numGroupMembers, numSubgroupMembers))
+				-- status?
+				elseif (command == "status") then
+					-- check status
+					local isRaid, isGroup, numGroupMembers, numSubGroupMembers = strsplit(",", args[4])
+					if (isRaid == "true") then
+						-- raid group
+						print(strformat(L["%s: %s is in raid with %d players."], NS.CommunityFlare_Title, sender, numGroupMembers))
+					elseif (isGroup == "true") then
+						-- party group
+						print(strformat(L["%s: %s is in party with %d players."], NS.CommunityFlare_Title, sender, numGroupMembers))
+					else
+						-- party group
+						print(strformat(L["%s: %s is not in any party or raid."], NS.CommunityFlare_Title, sender))
+					end
+				end
+			end
+		end
+	end
+
+	-- supress
+	return true
 end

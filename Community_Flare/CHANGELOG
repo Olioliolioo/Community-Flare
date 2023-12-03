@@ -1,3 +1,7 @@
+v1.01 features:
+-Added ability to obtain CF data to other CF users in the same Main Community.
+-Updated some Locales strings and converted some more.
+
 v1.00 features:
 -Localization added for this release, only enUS and esMX added so far, if someone wants to make the others and send to me?
 --Find Mesostealthy-Dentarg in-game and let me know what languages you would like to help with.

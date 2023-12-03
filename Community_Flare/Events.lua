@@ -425,11 +425,11 @@ function NS.CommunityFlare_SetupHooks()
 end
 
 -- handle chat whisper filtering
-function NS.CommunityFlare_Chat_Whisper_Filter(self, event, msg, author, ...)
+function NS.CommunityFlare_Chat_Whisper_Filter(self, event, text, sender, ...)
 	-- found internal message?
-	if (msg:find("!CF@")) then
-		-- suppress
-		return true
+	if (text:find("!CF@")) then
+		-- handle commands
+		return NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 	end
 
 	-- normal
@@ -1862,7 +1862,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 	if (lower == "defaults") then
 		-- reset default settings
 		local count = NS.CommunityFlare_Reset_Default_Settings()
-		print(strformat("%s: Reset %d profile settings to default.", NS.CommunityFlare_Title, count))
+		print(strformat(L["%s: Reset %d profile settings to default."], NS.CommunityFlare_Title, count))
 	elseif (lower == "inactive") then
 		-- check for inactive players
 		print(L["Checking for inactive players"])
@@ -1877,7 +1877,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 
 		-- display community leaders
 		local count = 0
-		print(strformat("%s: %s %s", NS.CommunityFlare_Title, L["Listing"], L["Community Leaders"]))
+		print(strformat(L["%s: Listing Community Leaders"], NS.CommunityFlare_Title))
 		for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
 			-- display
 			print(v)
@@ -1885,7 +1885,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 			-- next
 			count = count + 1
 		end
-		print(strformat("%s: %d %s %s.", NS.CommunityFlare_Title, count, L["Community Leaders"], L["found"]))
+		print(strformat(L["%s: %d Community Leaders found."], NS.CommunityFlare_Title, count))
 	elseif (lower == "pois") then
 		-- list all POI's
 		NS.CommunityFlare_List_POIs()
@@ -1894,7 +1894,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 		local status = NS.CommunityFlare_Process_Club_Members()
 		if (status == true) then
 			-- refreshed database
-			print(strformat(L["%s: Refreshed members databased! %d members found."], NS.CommunityFlare_Title, NS.CommunityFlare_GetMemberCount()))
+			print(strformat(L["%s: Refreshed members database! %d members found."], NS.CommunityFlare_Title, NS.CommunityFlare_GetMemberCount()))
 		else
 			-- no subscribed clubs found
 			print(strformat(L["%s: No subscribed clubs found."], NS.CommunityFlare_Title))
@@ -1903,6 +1903,9 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 		-- reset members database
 		NS.db.global.members = {}
 		print(L["Cleared members database!"])
+	elseif (lower == "test") then
+		-- dump internal commands
+		DevTools_Dump(NS.CommFlare.CF.SocialQueues)
 	elseif (lower == "usage") then
 		-- display usages
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["CPU Usage"], GetAddOnCPUUsage(ADDON_NAME)))
