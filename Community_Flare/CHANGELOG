@@ -1,3 +1,12 @@
+v1.03 features:
+-No Subscribed clubs found message will only show up once per character that does not have any club selected.
+-Can Report Queue Joins/Drops/Pops/etc for Brawl: Comp Stomp.
+-Log Names List now stores properly if you are a Mercenary.
+-New Setting: Display notification for popped groups?
+--If enabled, will show popped groups and member counts.
+-frFR Locale language has first been added.
+-Added better queue tracking stuff.
+
 v1.02 features:
 -Removed esMX language from Locales loading, was just there for testing purposes before.
 -When gates open, Mercenary names will show counts from communities now.

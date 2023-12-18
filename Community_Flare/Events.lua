@@ -13,7 +13,6 @@ local _G                                        = _G
 local AcceptGroup                               = _G.AcceptGroup
 local ChatFrame_AddMessageEventFilter           = _G.ChatFrame_AddMessageEventFilter
 local DeclineQuest                              = _G.DeclineQuest
-local DevTools_Dump                             = _G.DevTools_Dump
 local GetAddOnCPUUsage                          = _G.GetAddOnCPUUsage
 local GetAddOnMemoryUsage                       = _G.GetAddOnMemoryUsage
 local GetAutoCompletePresenceID                 = _G.GetAutoCompletePresenceID
@@ -41,6 +40,7 @@ local StaticPopup_FindVisible                   = _G.StaticPopup_FindVisible
 local StaticPopup_Hide                          = _G.StaticPopup_Hide
 local StaticPopup1Text                          = _G.StaticPopup1Text
 local UnitFactionGroup                          = _G.UnitFactionGroup
+local UnitGUID                                  = _G.UnitGUID
 local UnitInRaid                                = _G.UnitInRaid
 local UnitName                                  = _G.UnitName
 local AreaPoiInfoGetAreaPOIForMap               = _G.C_AreaPoiInfo.GetAreaPOIForMap
@@ -59,9 +59,11 @@ local PartyInfoLeaveParty                       = _G.C_PartyInfo.LeaveParty
 local PartyInfoSetRestrictPings                 = _G.C_PartyInfo.SetRestrictPings
 local PvPGetActiveMatchState                    = _G.C_PvP.GetActiveMatchState
 local PvPGetActiveMatchDuration                 = _G.C_PvP.GetActiveMatchDuration
+local PvPGetScoreInfoByPlayerGuid               = _G.C_PvP.GetScoreInfoByPlayerGuid
 local PvPIsArena                                = _G.C_PvP.IsArena
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
 local SocialQueueGetGroupInfo                   = _G.C_SocialQueue.GetGroupInfo
+local SocialQueueGetGroupQueues                 = _G.C_SocialQueue.GetGroupQueues
 local TimerAfter                                = _G.C_Timer.After
 local date                                      = _G.date
 local hooksecurefunc                            = _G.hooksecurefunc
@@ -135,21 +137,25 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 		-- confirm?
 		if (status == "confirm") then
 			-- has queue popped?
-			if (NS.CommFlare.CF.Queues[index] and NS.CommFlare.CF.Queues[index].popped and (NS.CommFlare.CF.Queues[index].popped > 0)) then
+			if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped > 0)) then
 				-- accepted queue?
 				local text = ""
 				if (acceptFlag == true) then
 					-- mercenary?
-					if (NS.CommFlare.CF.Queues[index].mercenary == true) then
+					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 						-- finalize text
 						text = strformat(L["Entered Mercenary Queue For Popped %s!"], mapName)
 					else
 						-- finalize text
 						text = strformat(L["Entered Queue For Popped %s!"], mapName)
 					end
+
+					-- save stuff
+					NS.CommFlare.CF.LeftTime = 0
+					NS.CommFlare.CF.EnteredTime = time()
 				else
 					-- mercenary?
-					if (NS.CommFlare.CF.Queues[index].mercenary == true) then
+					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 						-- finalize text
 						text = strformat(L["Left Mercenary Queue For Popped %s!"], mapName)
 					else
@@ -162,6 +168,17 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 						-- send to community?
 						NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
 					end
+
+					-- reset stuff
+					NS.CommFlare.CF.LeftTime = time()
+					NS.CommFlare.CF.EnteredTime = 0
+
+					-- clear after 30 seconds
+					TimerAfter(30, function()
+						-- reset stuff
+						NS.CommFlare.CF.LeftTime = 0
+						NS.CommFlare.CF.CurrentPopped = {}
+					end)
 				end
 
 				-- are you in a party?
@@ -171,9 +188,37 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 				end
 
 				-- clear queue
-				NS.CommFlare.CF.Queues[index] = nil
+				NS.CommFlare.CF.LocalQueues[index] = nil
 			end
 		end
+	end
+end
+
+-- securely hook accept proposal
+function NS.CommunityFlare_AcceptProposal()
+	-- has queue popped?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped > 0)) then
+		-- has name?
+		if (NS.CommFlare.CF.LocalQueues[index].name and (NS.CommFlare.CF.LocalQueues[index].name ~= "")) then
+			-- are you in a party?
+			if (IsInGroup() and not IsInRaid()) then
+				-- send party message
+				local mapName = NS.CommFlare.CF.LocalQueues[index].name
+				NS.CommunityFlare_SendMessage(nil, strformat(L["Accepted Queue For Popped %s!"], mapName))
+			end
+		end
+	end
+end
+
+-- securely hook reject proposal
+function NS.CommunityFlare_RejectProposal()
+	-- has brawl queue?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped > 0)) then
+		-- update brawl status
+		NS.CommFlare.CF.LocalQueues[index].status = "rejected"
+		NS.CommunityFlare_Update_Brawl_Status()
 	end
 end
 
@@ -398,6 +443,8 @@ end
 function NS.CommunityFlare_SetupHooks()
 	-- hook stuff
 	hooksecurefunc("AcceptBattlefieldPort", NS.CommunityFlare_AcceptBattlefieldPort)
+	hooksecurefunc("AcceptProposal", NS.CommunityFlare_AcceptProposal)
+	hooksecurefunc("RejectProposal", NS.CommunityFlare_RejectProposal)
 
 	-- hooks for blocking character frame hotkeys inside a battleground
 	NS.CommFlare.CF.AllowCharacterFrame = false
@@ -428,15 +475,13 @@ end
 function NS.CommunityFlare_Chat_Whisper_Filter(self, event, text, sender, ...)
 	-- found internal message?
 	if (text:find("!CF@")) then
-		-- handle commands
-		return NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
+		-- suppress
+		return true
 	end
 
 	-- normal
 	return false
 end
-
--- SORTED BELOW
 
 -- process addon loaded
 function NS.CommFlare:ADDON_LOADED(msg, ...)
@@ -527,30 +572,13 @@ end
 function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 	local text, sender = ...
 
-	-- someone has joined the battleground?
+	-- joined the queue for?
 	local lower = strlower(text)
-	if (lower:find(L["has joined the instance group"])) then
-		-- do you have lead?
-		local player = NS.CommunityFlare_GetPlayerName("full")
-		NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
-		if (NS.CommFlare.CF.PlayerRank == 2) then
-			-- process all community leaders
-			for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
-				-- already leader?
-				if (player == v) then
-					-- success
-					break
-				end
-
-				-- promote this leader
-				if (NS.CommunityFlare_PromoteToRaidLeader(v) == true) then
-					-- success
-					break
-				end
-			end
-		end
+	if (lower:find(L["joined the queue for"])) then
+		-- update local group
+		NS.CommunityFlare_Update_Group("local")
 	-- notify system has been enabled?
-	elseif (lower:find(L["notify system has been enabled"])) then
+	elseif (text == PVP_REPORT_AFK_SYSTEM_ENABLED) then
 		-- restrict pings?
 		if (NS.db.profile.restrictPings == true) then
 			-- does player have raid leadership or assistant?
@@ -620,8 +648,31 @@ function NS.CommFlare:CHAT_MSG_MONSTER_YELL(msg, ...)
 		NS.CommFlare.CF.ASH.Rylai = L["Killed"]
 	end
 
+	-- use player guid
+	local faction = nil
+	local guid = UnitGUID("player")
+	if (guid) then
+		-- get player score info by guid
+		local info = PvPGetScoreInfoByPlayerGuid(guid)
+		if (info and info.faction) then
+			-- alliance faction?
+			if (info.faction == 1) then
+				-- set alliance
+				faction = L["Alliance"]
+			else
+				-- set horde
+				faction = L["Horde"]
+			end
+		end
+	end
+
+	-- faction not found?
+	if (not faction) then
+		-- use player faction
+		faction = UnitFactionGroup("player")
+	end
+
 	-- alliance faction?
-	local faction = UnitFactionGroup("player")
 	if (faction == L["Alliance"]) then
 		-- captain balinda stonehearth?
 		if (sender == L["Captain Balinda Stonehearth"]) then
@@ -664,10 +715,33 @@ end
 function NS.CommFlare:CLUB_MEMBER_ADDED(msg, ...)
 	local clubId, memberId = ...
 
-	-- main community?
-	if (NS.db.profile.communityMain == clubId) then
+	-- find player in database
+	local player = NS.CommunityFlare_GetPlayerName("full")
+	local member = NS.CommunityFlare_GetCommunityMember(player)
+	if (member and member.clubs and member.clubs[clubId]) then
 		-- add club member
 		NS.CommunityFlare_ClubMemberAdded(clubId, memberId)
+	-- main community?
+	elseif (NS.db.profile.communityMain == clubId) then
+		-- add club member
+		NS.CommunityFlare_ClubMemberAdded(clubId, memberId)
+	-- has community list?
+	elseif (NS.db.profile.communityList and (next(NS.db.profile.communityList) ~= nil)) then
+		-- process all lists
+		local count = 0
+		for k,_ in pairs(NS.db.profile.communityList) do
+			-- matches?
+			if (clubId == k) then
+				-- increase
+				count = count + 1
+			end
+		end
+
+		-- found?
+		if (count > 0) then
+			-- add club member
+			NS.CommunityFlare_ClubMemberAdded(clubId, memberId)
+		end
 	end
 end
 
@@ -726,6 +800,14 @@ function NS.CommFlare:CLUB_MEMBER_UPDATED(msg, ...)
 
 	-- update club member
 	NS.CommunityFlare_ClubMemberUpdated(clubId, memberId)
+end
+
+-- process group formed
+function NS.CommFlare:GROUP_FORMED(msg, ...)
+	local category, partyGUID = ...
+
+	-- save partyGUID
+	NS.CommFlare.CF.PartyGUID = partyGUID
 end
 
 -- process group invite confirmation
@@ -843,6 +925,19 @@ function NS.CommFlare:GROUP_JOINED(msg, ...)
 
 	-- save partyGUID
 	NS.CommFlare.CF.PartyGUID = partyGUID
+
+	-- not in raid?
+	if (not IsInRaid()) then
+		-- queue exists?
+		if (NS.CommFlare.CF.SocialQueues[partyGUID] and NS.CommFlare.CF.SocialQueues[partyGUID].guid and NS.CommFlare.CF.SocialQueues[partyGUID].created and (NS.CommFlare.CF.SocialQueues[partyGUID].created > 0)) then
+			-- copy party queue to local
+			NS.CommFlare.CF.SocialQueues["local"] = NS.CommFlare.CF.SocialQueues[partyGUID]
+			NS.CommFlare.CF.SocialQueues[partyGUID] = nil
+
+			-- update local group
+			NS.CommunityFlare_Update_Group("local")
+		end
+	end
 end
 
 -- process group left
@@ -854,84 +949,166 @@ function NS.CommFlare:GROUP_LEFT(msg, ...)
 
 	-- delete partyGUID
 	NS.CommFlare.CF.PartyGUID = nil
+
+	-- not in raid?
+	if (not IsInRaid()) then
+		-- queue exists?
+		if (NS.CommFlare.CF.SocialQueues["local"] and NS.CommFlare.CF.SocialQueues["local"].guid and NS.CommFlare.CF.SocialQueues["local"].created and (NS.CommFlare.CF.SocialQueues["local"].created > 0)) then
+			-- copy local to party queues
+			NS.CommFlare.CF.SocialQueues[partyGUID] = NS.CommFlare.CF.SocialQueues["local"]
+			NS.CommunityFlare_Initialize_Group("local")
+
+			-- update party group
+			NS.CommunityFlare_Update_Group(partyGUID)
+		end
+	end
 end
 
 -- process group roster update
 function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
-	-- in pvp content?
+	-- skip for arena
 	local isArena = PvPIsArena()
-	local isBattleground = PvPIsBattleground()
-	if ((isArena == true) or (isBattleground == true)) then
+	if (isArena == true) then
 		-- finished
 		return
 	end
 
-	-- party leader?
-	local leader = NS.CommunityFlare_GetPartyLeader()
-	local player = NS.CommunityFlare_GetPlayerName("full")
-	if (player == leader) then
-		-- community member?
-		local message = "GROUP_ROSTER_UPDATE"
-		if (NS.db.profile.communityMain > 1) then
-			-- append YES
-			message = message .. ":YES"
-		else
-			-- append NO
-			message = message .. ":NO"
-		end
+	-- is battleground?
+	local isBattleground = PvPIsBattleground()
+	if (isBattleground == true) then
+		-- prematch gate open
+		if (NS.CommFlare.CF.MatchStatus == 1) then
+			-- do you have lead?
+			local player = NS.CommunityFlare_GetPlayerName("full")
+			NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
+			if (NS.CommFlare.CF.PlayerRank == 2) then
+				-- process all community leaders
+				for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
+					-- already leader?
+					if (player == v) then
+						-- success
+						break
+					end
 
-		-- send party joined message
-		NS.CommFlare:SendCommMessage(ADDON_NAME, message, "PARTY")
-	end
-
-	-- are you in a party?
-	if (IsInGroup() and not IsInRaid()) then
-		-- are you group leader?
-		if (NS.CommunityFlare_IsGroupLeader() == true) then
-			-- check current players in home party
-			local count = 1
-			local players = GetHomePartyInfo()
-			if (players ~= nil) then
-				-- has group size changed?
-				local text = NS.CommunityFlare_GetGroupCount()
-				count = #players + count
-				if ((NS.CommFlare.CF.PreviousCount > 0) and (NS.CommFlare.CF.PreviousCount < 5) and (count == 5)) then
-					-- community reporter enabled?
-					if (NS.db.profile.communityReporter == true) then
-						-- send to community?
-						text = strformat("%s %s!", text, L["Full Now"])
-						NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+				-- promote this leader
+					if (NS.CommunityFlare_PromoteToRaidLeader(v) == true) then
+						-- success
+						break
 					end
 				end
 			end
+		end
+	-- not battleground
+	else
+		-- are you in a party?
+		if (IsInGroup() and not IsInRaid()) then
+			-- are you group leader?
+			if (NS.CommunityFlare_IsGroupLeader() == true) then
+				-- check current players in home party
+				local count = 1
+				local players = GetHomePartyInfo()
+				if (players ~= nil) then
+					-- has group size changed?
+					local text = NS.CommunityFlare_GetGroupCount()
+					count = #players + count
+					if ((NS.CommFlare.CF.PreviousCount > 0) and (NS.CommFlare.CF.PreviousCount < 5) and (count == 5)) then
+						-- community reporter enabled?
+						if (NS.db.profile.communityReporter == true) then
+							-- send to community?
+							text = strformat("%s %s!", text, L["Full Now"])
+							NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+						end
+					end
+				end
 
-			-- save previous count
-			NS.CommFlare.CF.PreviousCount = count
+				-- save previous count
+				NS.CommFlare.CF.PreviousCount = count
+			else
+				-- clear previous count
+				NS.CommFlare.CF.PreviousCount = 0
+			end
 		else
 			-- clear previous count
 			NS.CommFlare.CF.PreviousCount = 0
 		end
-	else
-		-- clear previous count
-		NS.CommFlare.CF.PreviousCount = 0
+
+		-- not in raid?
+		if (not IsInRaid()) then
+			-- update local group
+			NS.CommunityFlare_Update_Group("local")
+		end
 	end
 end
 
 -- process initial clubs loaded
 function NS.CommFlare:INITIAL_CLUBS_LOADED(msg)
 	-- initial login?
-	if (NS.CommFlare.CF.InitialLogin == true) then
+	if (NS.CommFlare.CF.InitialLogin == false) then
 		-- should readd community channels?
 		if (NS.db.profile.alwaysReaddChannels == true) then
 			-- readd community channels
 			TimerAfter(10, NS.CommunityFlare_ReaddChannelsInitialLoad)
 		end
 
-		-- verify default community setup
-		NS.CommunityFlare_VerifyDefaultCommunitySetup()
-
 		-- refresh club members
 		TimerAfter(10, NS.CommunityFlare_Refresh_Club_Members)
+
+		-- initialized
+		NS.CommFlare.CF.InitialLogin = true
+	end
+end
+
+-- process lfg proposal done
+function NS.CommFlare:LFG_PROPOSAL_DONE(msg)
+	-- brawl queue exists?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index]) then
+		-- not rejected?
+		if (NS.CommFlare.CF.LocalQueues[index].status ~= "rejected") then
+			-- entered queue pop
+			NS.CommFlare.CF.LocalQueues[index].status = "entered"
+		end
+
+		-- update brawl status
+		NS.CommunityFlare_Update_Brawl_Status()
+	end
+end
+
+-- process lfg proposal failed
+function NS.CommFlare:LFG_PROPOSAL_FAILED(msg)
+	-- brawl queue exists?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index]) then
+		-- not rejected?
+		if (NS.CommFlare.CF.LocalQueues[index].status ~= "rejected") then
+			-- missed queue pop
+			NS.CommFlare.CF.LocalQueues[index].status = "failed"
+		end
+
+		-- update brawl status
+		NS.CommunityFlare_Update_Brawl_Status()
+	end
+end
+
+-- process lfg proposal show
+function NS.CommFlare:LFG_PROPOSAL_SHOW(msg)
+	-- brawl queue exists?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index]) then
+		-- update brawl status
+		NS.CommFlare.CF.LocalQueues[index].status = "popped"
+		NS.CommunityFlare_Update_Brawl_Status()
+	end
+end
+
+-- process lfg proposal succeeded
+function NS.CommFlare:LFG_PROPOSAL_SUCCEEDED(msg)
+	-- brawl queue exists?
+	local index = "Brawl"
+	if (NS.CommFlare.CF.LocalQueues[index]) then
+		-- update brawl status
+		NS.CommFlare.CF.LocalQueues[index].status = "entered"
+		NS.CommunityFlare_Update_Brawl_Status()
 	end
 end
 
@@ -951,6 +1128,11 @@ function NS.CommFlare:LFG_ROLE_CHECK_ROLE_CHOSEN(msg, ...)
 	if (NS.CommunityFlare_IsGroupLeader() == true) then
 		-- is this your role?
 		if (name == UnitName("player")) then
+			-- reset counts
+			NS.CommFlare.CF.LocalData.NumDPS = 0
+			NS.CommFlare.CF.LocalData.NumHealers = 0
+			NS.CommFlare.CF.LocalData.NumTanks = 0
+
 			-- initialize queue session
 			NS.CommunityFlare_Initialize_Queue_Session()
 		end
@@ -962,6 +1144,27 @@ function NS.CommFlare:LFG_ROLE_CHECK_ROLE_CHOSEN(msg, ...)
 		local mapName = GetLFGRoleUpdateBattlegroundInfo()
 		local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
 		if (isTracked == true) then
+			-- first role chosen?
+			if (not NS.CommFlare.CF.RoleChosen[player]) then
+				-- is damage?
+				if (isDamage == true) then
+					-- increase
+					NS.CommFlare.CF.LocalData.NumDPS = NS.CommFlare.CF.LocalData.NumDPS + 1
+				end
+
+				-- is healer?
+				if (isHealer == true) then
+					-- increase
+					NS.CommFlare.CF.LocalData.NumHealers = NS.CommFlare.CF.LocalData.NumHealers + 1
+				end
+
+				-- is tank?
+				if (isTank == true) then
+					-- increase
+					NS.CommFlare.CF.LocalData.NumTanks = NS.CommFlare.CF.LocalData.NumTanks + 1
+				end
+			end
+
 			-- role chosen
 			NS.CommFlare.CF.RoleChosen[player] = true
 		end
@@ -1043,6 +1246,12 @@ function NS.CommFlare:LFG_ROLE_CHECK_SHOW(msg, ...)
 	end
 end
 
+-- process lfg update
+function NS.CommFlare:LFG_UPDATE(msg)
+	-- update brawl status
+	NS.CommunityFlare_Update_Brawl_Status()
+end
+
 -- process notify pvp afk result
 function NS.CommFlare:NOTIFY_PVP_AFK_RESULT(msg, ...)
 	local offender, numBlackMarksOnOffender, numPlayersIHaveReported = ...
@@ -1115,13 +1324,22 @@ function NS.CommFlare:PARTY_LEADER_CHANGED(msg)
 			end
 		end
 	end
+
+	-- in a group?
+	if (IsInGroup()) then
+		-- not in a raid?
+		if (not IsInRaid()) then
+			-- update local group
+			NS.CommunityFlare_Update_Group("local")
+		end
+	end
 end
 
 -- process player entering world
 function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 	local isInitialLogin, isReloadingUi = ...
 
-	-- save player server name
+	-- setup stuff
 	NS.CommFlare.CF.PlayerServerName = strgsub(GetRealmName(), "%s+", "")
 
 	-- initial login or reloading?
@@ -1142,6 +1360,9 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		NS.db.profile.communityMainName = nil
 
 		-- add chat whisper filtering
+		ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", NS.CommunityFlare_Chat_Whisper_Filter)
+		ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER", NS.CommunityFlare_Chat_Whisper_Filter)
+		ChatFrame_AddMessageEventFilter("CHAT_MSG_BN_WHISPER_INFORM", NS.CommunityFlare_Chat_Whisper_Filter)
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER", NS.CommunityFlare_Chat_Whisper_Filter)
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", NS.CommunityFlare_Chat_Whisper_Filter)
 
@@ -1154,13 +1375,9 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		-- process queue stuff
 		NS.CommunityFlare_SetupHooks()
 
-		-- verify default community setup
-		NS.CommunityFlare_VerifyDefaultCommunitySetup()
-
 		-- initialize login?
 		if (isInitialLogin == true) then
-			-- initialize login
-			NS.CommFlare.CF.InitialLogin = true
+			-- not reloaded
 			NS.CommFlare.CF.Reloaded = false
 
 			-- disable community party leader
@@ -1168,11 +1385,10 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		-- reloading?
 		elseif (isReloadingUi == true) then
 			-- reloaded
-			NS.CommFlare.CF.InitialLogin = false
 			NS.CommFlare.CF.Reloaded = true
 
-			-- load previous session
-			NS.CommunityFlare_LoadSession()
+			-- update local group
+			NS.CommunityFlare_Update_Group("local")
 
 			-- refresh club members
 			TimerAfter(10, NS.CommunityFlare_Refresh_Club_Members)
@@ -1192,6 +1408,18 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 			end
 		end
 	end
+
+	-- sanity checks
+	NS.CommunityFlare_Sanity_Checks()
+end
+
+-- process player login
+function NS.CommFlare:PLAYER_LOGIN(msg)
+	-- verify default community setup
+	NS.CommunityFlare_VerifyDefaultCommunitySetup()
+
+	-- load previous session
+	NS.CommunityFlare_LoadSession()
 end
 
 -- process player logout
@@ -1234,6 +1462,8 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 	end
 
 	-- update battleground status
+	NS.CommFlare.CF.LeftTime = 0
+	NS.CommFlare.CF.EnteredTime = 0
 	NS.CommFlare.CF.MatchStatus = 3
 	local status = NS.CommunityFlare_Update_Battleground_Status()
 	if (status == true) then
@@ -1543,8 +1773,29 @@ function NS.CommFlare:READY_CHECK_FINISHED(msg, ...)
 				if (NS.db.profile.communityReporter == true) then
 					-- are you group leader?
 					if (NS.CommunityFlare_IsGroupLeader() == true) then
+						-- alliance faction?
+						local text = ""
+						local faction = UnitFactionGroup("player")
+						if (faction == L["Alliance"]) then
+							-- alliance ready
+							text = strformat(L["%s Alliance Ready!"], NS.CommunityFlare_GetGroupCount())
+						-- horde faction?
+						elseif (faction == L["Horde"]) then
+							-- horde ready
+							text = strformat(L["%s Horde Ready!"], NS.CommunityFlare_GetGroupCount())
+						else
+							-- unknown faction?
+							text = strformat("%s %s!", NS.CommunityFlare_GetGroupCount(), L["Ready"])
+						end
+
+						-- does the player have the mercenary buff?
+						NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+						if (NS.CommFlare.CF.HasAura == true) then
+							-- add mercenary contract
+							text = strformat("%s [%s]", text, L["Mercenary Contract"])
+						end
+
 						-- check if group has room for more
-						local text = strformat("%s %s!", NS.CommunityFlare_GetGroupCount(), L["Ready"])
 						if (NS.CommFlare.CF.Count < 5) then
 							-- community auto invite enabled
 							if (NS.db.profile.communityAutoInvite == true) then
@@ -1569,21 +1820,15 @@ end
 function NS.CommFlare:SOCIAL_QUEUE_UPDATE(msg, ...)
 	local groupGUID, numAddedItems = ...
 
-	-- valid update?
-	if (groupGUID and numAddedItems) then
-		-- leader found?
-		local canJoin, numQueues, needTank, needHealer, needDamage, isSoloQueueParty, questSessionActive, leaderGUID = SocialQueueGetGroupInfo(groupGUID)
-		if (leaderGUID) then
-			-- update group
-			NS.CommunityFlare_Update_Group(groupGUID, canJoin, numQueues, leaderGUID)
-		else
-			-- clear queue
-			NS.CommFlare.CF.SocialQueues[groupGUID] = nil
-		end
-	else
-		-- clear queue
-		NS.CommFlare.CF.SocialQueues[groupGUID] = nil
+	-- nothing added?
+	local canJoin, numQueues, needTank, needHealer, needDamage, isSoloQueueParty, questSessionActive, leaderGUID = SocialQueueGetGroupInfo(groupGUID)
+	if ((not groupGUID) or (not numAddedItems) or (not leaderGUID)) then
+		-- finished
+		return
 	end
+
+	-- update group
+	NS.CommunityFlare_Update_Group(groupGUID)
 end
 
 -- process ui info message
@@ -1733,17 +1978,24 @@ function NS.CommFlare:OnEnable()
 	self:RegisterEvent("CLUB_MEMBER_REMOVED")
 	self:RegisterEvent("CLUB_MEMBER_ROLE_UPDATED")
 	self:RegisterEvent("CLUB_MEMBER_UPDATED")
+	self:RegisterEvent("GROUP_FORMED")
 	self:RegisterEvent("GROUP_INVITE_CONFIRMATION")
 	self:RegisterEvent("GROUP_JOINED")
 	self:RegisterEvent("GROUP_LEFT")
 	self:RegisterEvent("GROUP_ROSTER_UPDATE")
 	self:RegisterEvent("INITIAL_CLUBS_LOADED")
+	self:RegisterEvent("LFG_PROPOSAL_DONE")
+	self:RegisterEvent("LFG_PROPOSAL_FAILED")
+	self:RegisterEvent("LFG_PROPOSAL_SHOW")
+	self:RegisterEvent("LFG_PROPOSAL_SUCCEEDED")
 	self:RegisterEvent("LFG_ROLE_CHECK_ROLE_CHOSEN")
 	self:RegisterEvent("LFG_ROLE_CHECK_SHOW")
+	self:RegisterEvent("LFG_UPDATE")
 	self:RegisterEvent("NOTIFY_PVP_AFK_RESULT")
 	self:RegisterEvent("PARTY_INVITE_REQUEST")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterEvent("PARTY_LEADER_CHANGED")
+	self:RegisterEvent("PLAYER_LOGIN")
 	self:RegisterEvent("PLAYER_LOGOUT")
 	self:RegisterEvent("PVP_MATCH_ACTIVE")
 	self:RegisterEvent("PVP_MATCH_COMPLETE")
@@ -1776,17 +2028,24 @@ function NS.CommFlare:OnDisable()
 	self:UnregisterEvent("CLUB_MEMBER_REMOVED")
 	self:UnregisterEvent("CLUB_MEMBER_ROLE_UPDATED")
 	self:UnregisterEvent("CLUB_MEMBER_UPDATED")
+	self:UnregisterEvent("GROUP_FORMED")
 	self:UnregisterEvent("GROUP_INVITE_CONFIRMATION")
 	self:UnregisterEvent("GROUP_JOINED")
 	self:UnregisterEvent("GROUP_LEFT")
 	self:UnregisterEvent("GROUP_ROSTER_UPDATE")
 	self:UnregisterEvent("INITIAL_CLUBS_LOADED")
+	self:UnregisterEvent("LFG_PROPOSAL_DONE")
+	self:UnregisterEvent("LFG_PROPOSAL_FAILED")
+	self:UnregisterEvent("LFG_PROPOSAL_SHOW")
+	self:UnregisterEvent("LFG_PROPOSAL_SUCCEEDED")
 	self:UnregisterEvent("LFG_ROLE_CHECK_ROLE_CHOSEN")
 	self:UnregisterEvent("LFG_ROLE_CHECK_SHOW")
+	self:UnregisterEvent("LFG_UPDATE")
 	self:UnregisterEvent("NOTIFY_PVP_AFK_RESULT")
 	self:UnregisterEvent("PARTY_INVITE_REQUEST")
 	self:UnregisterEvent("PARTY_LEADER_CHANGED")
 	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+	self:UnregisterEvent("PLAYER_LOGIN")
 	self:UnregisterEvent("PLAYER_LOGOUT")
 	self:UnregisterEvent("PVP_MATCH_ACTIVE")
 	self:UnregisterEvent("PVP_MATCH_COMPLETE")
@@ -1903,9 +2162,6 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 		-- reset members database
 		NS.db.global.members = {}
 		print(L["Cleared members database!"])
-	elseif (lower == "test") then
-		-- dump internal commands
-		DevTools_Dump(NS.CommFlare.CF.SocialQueues)
 	elseif (lower == "usage") then
 		-- display usages
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["CPU Usage"], GetAddOnCPUUsage(ADDON_NAME)))

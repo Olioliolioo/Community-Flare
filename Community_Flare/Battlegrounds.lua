@@ -13,27 +13,30 @@ local _G                                        = _G
 local BNGetFriendIndex                          = _G.BNGetFriendIndex
 local BNInviteFriend                            = _G.BNInviteFriend
 local BNRequestInviteFriend                     = _G.BNRequestInviteFriend
+local CopyTable                                 = _G.CopyTable
 local GetBattlefieldInstanceRunTime             = _G.GetBattlefieldInstanceRunTime
 local GetBattlefieldEstimatedWaitTime           = _G.GetBattlefieldEstimatedWaitTime
 local GetBattlefieldStatus                      = _G.GetBattlefieldStatus
 local GetBattlefieldTimeWaited                  = _G.GetBattlefieldTimeWaited
 local GetDisplayedInviteType                    = _G.GetDisplayedInviteType
-local GetLFGRoleUpdate                          = _G.GetLFGRoleUpdate
+local GetLFGInfoServer                          = _G.GetLFGInfoServer
+local GetLFGQueueStats                          = _G.GetLFGQueueStats
 local GetLFGRoleUpdateBattlegroundInfo          = _G.GetLFGRoleUpdateBattlegroundInfo
 local GetMaxBattlefieldID                       = _G.GetMaxBattlefieldID
 local GetNumBattlefieldScores                   = _G.GetNumBattlefieldScores
 local GetNumGroupMembers                        = _G.GetNumGroupMembers
+local GetPVPRoles                               = _G.GetPVPRoles
 local GetRaidRosterInfo                         = _G.GetRaidRosterInfo
 local IsAddOnLoaded                             = _G.C_AddOns and _G.C_AddOns.IsAddOnLoaded or _G.IsAddOnLoaded
 local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local PromoteToAssistant                        = _G.PromoteToAssistant
 local PromoteToLeader                           = _G.PromoteToLeader
+local RaidWarningFrame_OnEvent                  = _G.RaidWarningFrame_OnEvent
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local UnitFactionGroup                          = _G.UnitFactionGroup
 local UnitInRaid                                = _G.UnitInRaid
 local UnitName                                  = _G.UnitName
-local UnitRealmRelationship                     = _G.UnitRealmRelationship
 local AreaPoiInfoGetAreaPOIInfo                 = _G.C_AreaPoiInfo.GetAreaPOIInfo
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
@@ -41,10 +44,13 @@ local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local MapGetMapInfo                             = _G.C_Map.GetMapInfo
 local PartyInfoIsPartyFull                      = _G.C_PartyInfo.IsPartyFull
 local PartyInfoInviteUnit                       = _G.C_PartyInfo.InviteUnit
+local PvPGetActiveBrawlInfo                     = _G.C_PvP.GetActiveBrawlInfo
 local PvPGetActiveMatchDuration                 = _G.C_PvP.GetActiveMatchDuration
+local PvPGetAvailableBrawlInfo                  = _G.C_PvP.GetAvailableBrawlInfo
 local PvPGetScoreInfo                           = _G.C_PvP.GetScoreInfo
 local PvPGetScoreInfoByPlayerGuid               = _G.C_PvP.GetScoreInfoByPlayerGuid
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
+local PvPIsInBrawl                              = _G.C_PvP.IsInBrawl
 local TimerAfter                                = _G.C_Timer.After
 local GetDoubleStatusBarWidgetVisualizationInfo = _G.C_UIWidgetManager.GetDoubleStatusBarWidgetVisualizationInfo
 local GetIconAndTextWidgetVisualizationInfo     = _G.C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo
@@ -196,14 +202,24 @@ end
 
 -- get battleground map name
 function NS.CommunityFlare_Battleground_Get_Map_Name()
-	-- find active battleground
+	-- inside brawl?
 	NS.CommFlare.CF.MapName = L["N/A"]
-	for i=1, GetMaxBattlefieldID() do
-		-- active match?
-		local status, mapName = GetBattlefieldStatus(i)
-		if (status == "active") then
+	if (PvPIsInBrawl() == true) then
+		-- find active brawl info / name
+		local brawlInfo = PvPGetActiveBrawlInfo()
+		if (brawlInfo and brawlInfo.name) then
 			-- save map name
-			NS.CommFlare.CF.MapName = mapName
+			NS.CommFlare.CF.MapName = brawlInfo.name
+		end
+	else
+		-- find active battleground
+		for i=1, GetMaxBattlefieldID() do
+			-- active match?
+			local status, mapName = GetBattlefieldStatus(i)
+			if (status == "active") then
+				-- save map name
+				NS.CommFlare.CF.MapName = mapName
+			end
 		end
 	end
 end
@@ -653,13 +669,6 @@ function NS.CommunityFlare_Process_Community_Members()
 						tinsert(NS.CommFlare.CF.CommNames[clubId], member.name)
 						NS.CommFlare.CF.CommCount = NS.CommFlare.CF.CommCount + 1
 						NS.CommFlare.CF.CommCounts[clubId] = NS.CommFlare.CF.CommCounts[clubId] + 1
-
-						-- should log list?
-						if (NS.CommunityFlare_Get_LogList_Status(player) == true) then
-							-- update
-							tinsert(NS.CommFlare.CF.LogListNamesList, player)
-							NS.CommFlare.CF.LogListCount = NS.CommFlare.CF.LogListCount + 1
-						end
 					else
 						-- update stuff
 						tinsert(NS.CommFlare.CF.MercNamesList, member.name)
@@ -682,14 +691,14 @@ function NS.CommunityFlare_Process_Community_Members()
 						tinsert(NS.CommFlare.CF.CommNames[clubId], member.name)
 						NS.CommFlare.CF.CommCount = NS.CommFlare.CF.CommCount + 1
 						NS.CommFlare.CF.CommCounts[clubId] = NS.CommFlare.CF.CommCounts[clubId] + 1
-
-						-- should log list?
-						if (NS.CommunityFlare_Get_LogList_Status(player) == true) then
-							-- update
-							tinsert(NS.CommFlare.CF.LogListNamesList, player)
-							NS.CommFlare.CF.LogListCount = NS.CommFlare.CF.LogListCount + 1
-						end
 					end
+				end
+
+				-- should log list?
+				if (NS.CommunityFlare_Get_LogList_Status(player) == true) then
+					-- update
+					tinsert(NS.CommFlare.CF.LogListNamesList, player)
+					NS.CommFlare.CF.LogListCount = NS.CommFlare.CF.LogListCount + 1
 				end
 
 				-- player has raid leader?
@@ -1065,6 +1074,10 @@ function NS.CommunityFlare_Process_Auto_Invite(sender)
 			if (PvPIsBattleground() == true) then
 				-- can not invite while in a battleground
 				NS.CommunityFlare_SendMessage(sender, L["Sorry, currently in a battleground now."])
+			-- inside brawl?
+			elseif (PvPIsInBrawl() == true) then
+				-- can not invite while in a brawl
+				NS.CommunityFlare_SendMessage(sender, L["Sorry, currently in a brawl now."])
 			else
 				-- get bnet friend index
 				local index = BNGetFriendIndex(sender)
@@ -1115,6 +1128,10 @@ function NS.CommunityFlare_Process_Auto_Invite(sender)
 			if (PvPIsBattleground() == true) then
 				-- can not invite while in a battleground
 				NS.CommunityFlare_SendMessage(sender, L["Sorry, currently in a battleground now."])
+			-- inside brawl?
+			elseif (PvPIsInBrawl() == true) then
+				-- can not invite while in a brawl
+				NS.CommunityFlare_SendMessage(sender, L["Sorry, currently in a brawl now."])
 			else
 				-- is sender a community member?
 				NS.CommFlare.CF.AutoInvite = NS.CommunityFlare_IsCommunityMember(sender)
@@ -1288,79 +1305,184 @@ function NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
 	-- clear role chosen table
 	NS.CommFlare.CF.RoleChosen = {}
 
-	-- is tracked pvp?
-	local status, mapName = GetBattlefieldStatus(index)
-	local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
-	if (isTracked == true) then
-		-- get estimated time
-		local shouldReport = false
-		local text = NS.CommunityFlare_GetGroupCount()
-		NS.CommFlare.CF.Timer.MilliSeconds = GetBattlefieldEstimatedWaitTime(index)
-		if (NS.CommFlare.CF.Timer.MilliSeconds > 0) then
-			-- calculate minutes / seconds
-			NS.CommFlare.CF.Timer.Seconds = mfloor(NS.CommFlare.CF.Timer.MilliSeconds / 1000)
-			NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
-			NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
-
-			-- does the player have the mercenary buff?
-			local time_waited = strformat(L["%d minutes, %d seconds"], NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
-			NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-			if (NS.CommFlare.CF.HasAura == true) then
-				-- build text for mercenary queue
-				NS.CommFlare.CF.Queues[index].mercenary = true
-
-				-- finalize text
-				text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
-			else
-				-- build text for normal epic battleground queue
-				NS.CommFlare.CF.Queues[index].mercenary = false
-
-				-- finalize text
-				text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
-			end
+	-- brawl?
+	if (index == "Brawl") then
+		-- get brawl info
+		local brawlInfo
+		if (PvPIsInBrawl() == true) then
+			brawlInfo = PvPGetActiveBrawlInfo()
 		else
-			-- increase
-			NS.CommFlare.CF.EstimatedWaitTime = NS.CommFlare.CF.EstimatedWaitTime + 1
+			brawlInfo = PvPGetAvailableBrawlInfo()
+		end
 
-			-- should try again?
-			if (NS.CommFlare.CF.EstimatedWaitTime < 5) then
-				-- try again
-				TimerAfter(0.2, function ()
-					-- call again
-					NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
-				end)
-				return
-			end
+		-- is tracked pvp?
+		local mapName = brawlInfo.name
+		local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
+		if (isTracked == true) then
+			-- get lfg queue stats
+			local hasData, leaderNeeds, tankNeeds, healerNeeds, dpsNeeds, totalTanks, totalHealers, totalDPS, instanceType, instanceSubType, instanceName, averageWait, tankWait, healerWait, damageWait, myWait, queuedTime = GetLFGQueueStats(LE_LFG_CATEGORY_BATTLEFIELD)
+			if (hasData and averageWait) then
+				-- get estimated time
+				local shouldReport = false
+				local text = NS.CommunityFlare_GetGroupCount()
+				NS.CommFlare.CF.Timer.MilliSeconds = averageWait * 1000
 
-			-- does the player have the mercenary buff?
-			NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-			if (NS.CommFlare.CF.HasAura == true) then
-				-- build text for mercenary queue
-				NS.CommFlare.CF.Queues[index].mercenary = true
+				-- calculate minutes / seconds
+				NS.CommFlare.CF.Timer.Seconds = mfloor(NS.CommFlare.CF.Timer.MilliSeconds / 1000)
+				NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
+				NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
 
 				-- finalize text
-				text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
+				local time_waited = strformat(L["%d minutes, %d seconds"], NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
+				text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
+
+				-- no specializations found? (probably solo Q)
+				if ((NS.CommFlare.CF.LocalData.NumTanks == 0) and (NS.CommFlare.CF.LocalData.NumHealers == 0) and (NS.CommFlare.CF.LocalData.NumDPS == 0)) then
+					-- get pvp roles
+					local isTank, isHealer, isDamage = GetPVPRoles()
+
+					-- tank?
+					if (isTank == true) then
+						-- tank spec
+						NS.CommFlare.CF.LocalData.NumTanks = 1
+					end
+	
+					-- tank?
+					if (isHealer == true) then
+						-- header spec
+						NS.CommFlare.CF.LocalData.NumHealers = 1
+					end
+
+					-- dps?
+					if (isDamage == true) then
+						-- header spec
+						NS.CommFlare.CF.LocalData.NumDPS = 1
+					end
+				end
+
+				-- add tanks / heals / dps counts
+				if ((NS.CommFlare.CF.LocalData.NumTanks > 0) or (NS.CommFlare.CF.LocalData.NumHealers > 0) or (NS.CommFlare.CF.LocalData.NumDPS > 0)) then
+					-- add counts
+					text = strformat(L["%s [%d Tanks, %d Healers, %d DPS]"], text, NS.CommFlare.CF.LocalData.NumTanks, NS.CommFlare.CF.LocalData.NumHealers, NS.CommFlare.CF.LocalData.NumDPS)
+				end
+
+				-- check if group has room for more
+				if (NS.CommFlare.CF.Count < 5) then
+					-- community auto invite enabled?
+					if (NS.db.profile.communityAutoInvite == true) then
+						-- update text
+						text = strformat("%s (%s)", text, L["For auto invite, whisper me INV"])
+					end
+				end
+
+				-- send to community
+				NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+			end
+		end
+	else
+		-- is tracked pvp?
+		local status, mapName = GetBattlefieldStatus(index)
+		local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
+		if (isTracked == true) then
+			-- get estimated time
+			local shouldReport = false
+			local text = NS.CommunityFlare_GetGroupCount()
+			NS.CommFlare.CF.Timer.MilliSeconds = GetBattlefieldEstimatedWaitTime(index)
+			if (NS.CommFlare.CF.Timer.MilliSeconds > 0) then
+				-- calculate minutes / seconds
+				NS.CommFlare.CF.Timer.Seconds = mfloor(NS.CommFlare.CF.Timer.MilliSeconds / 1000)
+				NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
+				NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
+
+				-- does the player have the mercenary buff?
+				local time_waited = strformat(L["%d minutes, %d seconds"], NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
+				NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+				if (NS.CommFlare.CF.HasAura == true) then
+					-- build text for mercenary queue
+					NS.CommFlare.CF.LocalQueues[index].mercenary = true
+
+					-- finalize text
+					text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
+				else
+					-- build text for normal epic battleground queue
+					NS.CommFlare.CF.LocalQueues[index].mercenary = false
+
+					-- finalize text
+					text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
+				end
 			else
-				-- build text for normal epic battleground queue
-				NS.CommFlare.CF.Queues[index].mercenary = false
+				-- increase
+				NS.CommFlare.CF.EstimatedWaitTime = NS.CommFlare.CF.EstimatedWaitTime + 1
 
-				-- finalize text
-				text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
+				-- should try again?
+				if (NS.CommFlare.CF.EstimatedWaitTime < 5) then
+					-- try again
+					TimerAfter(0.2, function ()
+						-- call again
+						NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
+					end)
+					return
+				end
+
+				-- does the player have the mercenary buff?
+				NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+				if (NS.CommFlare.CF.HasAura == true) then
+					-- build text for mercenary queue
+					NS.CommFlare.CF.LocalQueues[index].mercenary = true
+
+					-- finalize text
+					text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
+				else
+					-- build text for normal epic battleground queue
+					NS.CommFlare.CF.LocalQueues[index].mercenary = false
+
+					-- finalize text
+					text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
+				end
 			end
-		end
 
-		-- check if group has room for more
-		if (NS.CommFlare.CF.Count < 5) then
-			-- community auto invite enabled?
-			if (NS.db.profile.communityAutoInvite == true) then
-				-- update text
-				text = strformat("%s (%s)", text, L["For auto invite, whisper me INV"])
+			-- no specializations found? (probably solo Q)
+			if ((NS.CommFlare.CF.LocalData.NumTanks == 0) and (NS.CommFlare.CF.LocalData.NumHealers == 0) and (NS.CommFlare.CF.LocalData.NumDPS == 0)) then
+				-- get pvp roles
+				local isTank, isHealer, isDamage = GetPVPRoles()
+
+				-- tank?
+				if (isTank == true) then
+					-- tank spec
+					NS.CommFlare.CF.LocalData.NumTanks = 1
+				end
+	
+				-- tank?
+				if (isHealer == true) then
+					-- header spec
+					NS.CommFlare.CF.LocalData.NumHealers = 1
+				end
+
+				-- dps?
+				if (isDamage == true) then
+					-- header spec
+					NS.CommFlare.CF.LocalData.NumDPS = 1
+				end
 			end
-		end
 
-		-- send to community
-		NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
-		return
+			-- add tanks / heals / dps counts
+			if ((NS.CommFlare.CF.LocalData.NumTanks > 0) or (NS.CommFlare.CF.LocalData.NumHealers > 0) or (NS.CommFlare.CF.LocalData.NumDPS > 0)) then
+				-- add counts
+				text = strformat(L["%s [%d Tanks, %d Healers, %d DPS]"], text, NS.CommFlare.CF.LocalData.NumTanks, NS.CommFlare.CF.LocalData.NumHealers, NS.CommFlare.CF.LocalData.NumDPS)
+			end
+
+			-- check if group has room for more
+			if (NS.CommFlare.CF.Count < 5) then
+				-- community auto invite enabled?
+				if (NS.db.profile.communityAutoInvite == true) then
+					-- update text
+					text = strformat("%s (%s)", text, L["For auto invite, whisper me INV"])
+				end
+			end
+
+			-- send to community
+			NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+		end
 	end
 end
 
@@ -1368,9 +1490,9 @@ end
 function NS.CommunityFlare_Update_Battlefield_Status(index)
 	-- queue left or missed?
 	local status, mapName, _, _, suspendedQueue, queueType = GetBattlefieldStatus(index)
-	if ((status == "none") and NS.CommFlare.CF.Queues[index] and NS.CommFlare.CF.Queues[index].name and (NS.CommFlare.CF.Queues[index].name ~= "")) then
+	if ((status == "none") and NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].name and (NS.CommFlare.CF.LocalQueues[index].name ~= "")) then
 		-- update map name
-		mapName = NS.CommFlare.CF.Queues[index].name
+		mapName = NS.CommFlare.CF.LocalQueues[index].name
 	end
 
 	-- is tracked pvp?
@@ -1379,9 +1501,9 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 		-- queued?
 		if (status == "queued") then
 			-- just entering queue?
-			if (not NS.CommFlare.CF.Queues[index] or not NS.CommFlare.CF.Queues[index].name or (NS.CommFlare.CF.Queues[index].name == "")) then
+			if (not NS.CommFlare.CF.LocalQueues[index] or not NS.CommFlare.CF.LocalQueues[index].name or (NS.CommFlare.CF.LocalQueues[index].name == "")) then
 				-- add to queues
-				NS.CommFlare.CF.Queues[index] = {
+				NS.CommFlare.CF.LocalQueues[index] = {
 					["name"] = mapName,
 					["created"] = time(),
 					["entered"] = false,
@@ -1391,6 +1513,14 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					["suspended"] = false,
 					["type"] = queueType,
 				}
+
+				-- update local group
+				NS.CommunityFlare_Update_Group("local")
+
+				-- reset stuff
+				NS.CommFlare.CF.LeftTime = 0
+				NS.CommFlare.CF.EnteredTime = 0
+				NS.CommFlare.CF.CurrentPopped = {}
 
 				-- delay some
 				TimerAfter(0.5, function()
@@ -1406,9 +1536,9 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				end)
 			else
 				-- has queue paused?
-				if ((suspendedQueue == true) and (NS.CommFlare.CF.Queues[index].suspended == false)) then
+				if ((suspendedQueue == true) and (NS.CommFlare.CF.LocalQueues[index].suspended == false)) then
 					-- queue has paused
-					NS.CommFlare.CF.Queues[index].suspended = true
+					NS.CommFlare.CF.LocalQueues[index].suspended = true
 
 					-- queue paused warning enabled?
 					if (NS.db.profile.warningQueuePaused == true) then
@@ -1426,9 +1556,9 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 						end
 					end
 				-- has queue unpaused?
-				elseif ((suspendedQueue == false) and (NS.CommFlare.CF.Queues[index].suspended == true)) then
+				elseif ((suspendedQueue == false) and (NS.CommFlare.CF.LocalQueues[index].suspended == true)) then
 					-- queue has resumed
-					NS.CommFlare.CF.Queues[index].suspended = false
+					NS.CommFlare.CF.LocalQueues[index].suspended = false
 
 					-- queue paused warning enabled?
 					if (NS.db.profile.warningQueuePaused == true) then
@@ -1447,12 +1577,23 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 		-- confirm?
 		elseif (status == "confirm") then
 			-- queue just popped?
-			if (NS.CommFlare.CF.Queues[index] and NS.CommFlare.CF.Queues[index].popped and (NS.CommFlare.CF.Queues[index].popped == 0)) then
-				-- set popped
-				NS.CommFlare.CF.Queues[index].popped = time()
+			if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped == 0)) then
+				-- update local group
+				NS.CommFlare.CF.LocalQueues[index].popped = time()
+				NS.CommFlare.CF.SocialQueues["local"].popped = NS.CommFlare.CF.LocalQueues[index].popped
+				NS.CommFlare.CF.SocialQueues["local"].queues[index].popped = NS.CommFlare.CF.SocialQueues["local"].popped
+
+				-- display popped groups?
+				if (NS.db.profile.displayPoppedGroups == true) then
+					-- print popped group
+					print(strformat(L["POPPED: %s-%s (%d/5)"], NS.CommFlare.CF.SocialQueues["local"].leader.name, NS.CommFlare.CF.SocialQueues["local"].leader.realm, #NS.CommFlare.CF.SocialQueues["local"].members))
+				end
+
+				-- update / process popped groups
+				NS.CommunityFlare_Update_Group("local")
+				NS.CommunityFlare_Process_Popped("local")
 
 				-- port expiration not expired?
-				NS.CommFlare.CF.MapName = mapName
 				NS.CommFlare.CF.Expiration = GetBattlefieldPortExpiration(index)
 				if (NS.CommFlare.CF.Expiration > 0) then
 					-- community reporter enabled?
@@ -1463,12 +1604,42 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 							local text = ""
 							local mercenary = ""
 							local count = NS.CommunityFlare_GetGroupCount()
-							if (NS.CommFlare.CF.Queues[index].mercenary == true) then
+							if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 								-- finalize text
 								text = strformat(L["%s Mercenary Queue Popped For %s!"], count, mapName)
 							else
 								-- finalize text
 								text = strformat(L["%s Queue Popped For %s!"], count, mapName)
+							end
+
+							-- no specializations found? (probably solo Q)
+							if ((NS.CommFlare.CF.LocalData.NumTanks == 0) and (NS.CommFlare.CF.LocalData.NumHealers == 0) and (NS.CommFlare.CF.LocalData.NumDPS == 0)) then
+								-- get pvp roles
+								local isTank, isHealer, isDamage = GetPVPRoles()
+
+								-- tank?
+								if (isTank == true) then
+									-- tank spec
+									NS.CommFlare.CF.LocalData.NumTanks = 1
+								end
+	
+								-- tank?
+								if (isHealer == true) then
+									-- header spec
+									NS.CommFlare.CF.LocalData.NumHealers = 1
+								end
+
+								-- dps?
+								if (isDamage == true) then
+									-- header spec
+									NS.CommFlare.CF.LocalData.NumDPS = 1
+								end
+							end
+
+							-- add tanks / heals / dps counts
+							if ((NS.CommFlare.CF.LocalData.NumTanks > 0) or (NS.CommFlare.CF.LocalData.NumHealers > 0) or (NS.CommFlare.CF.LocalData.NumDPS > 0)) then
+								-- add counts
+								text = strformat(L["%s [%d Tanks, %d Healers, %d DPS]"], text, NS.CommFlare.CF.LocalData.NumTanks, NS.CommFlare.CF.LocalData.NumHealers, NS.CommFlare.CF.LocalData.NumDPS)
 							end
 
 							-- popped
@@ -1479,15 +1650,20 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				else
 					-- clear queue
 					print(strformat("%s: %s!", NS.CommunityFlare_Title, L["Port Expired"]))
-					NS.CommFlare.CF.Queues[index] = nil
+					NS.CommFlare.CF.LocalQueues[index] = nil
 				end
 			end
 		-- none?
 		elseif (status == "none") then
 			-- previously queued?
-			if (NS.CommFlare.CF.Queues[index] and NS.CommFlare.CF.Queues[index].popped) then
+			if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped) then
 				-- not popped?
-				if (NS.CommFlare.CF.Queues[index].popped == 0) then
+				if (NS.CommFlare.CF.LocalQueues[index].popped == 0) then
+					-- reset counts
+					NS.CommFlare.CF.LocalData.NumDPS = 0
+					NS.CommFlare.CF.LocalData.NumHealers = 0
+					NS.CommFlare.CF.LocalData.NumTanks = 0
+
 					-- community reporter enabled?
 					if (NS.db.profile.communityReporter == true) then
 						-- are you group leader?
@@ -1495,7 +1671,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 							-- mercenary?
 							local text = ""
 							local count = NS.CommunityFlare_GetGroupCount()
-							if (NS.CommFlare.CF.Queues[index].mercenary == true) then
+							if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 								-- finalize text
 								text = strformat(L["%s Dropped Mercenary Queue For %s!"], count, mapName)
 							else
@@ -1508,10 +1684,10 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 						end
 					end
 				-- popped?
-				elseif (NS.CommFlare.CF.Queues[index].popped > 0) then
+				elseif (NS.CommFlare.CF.LocalQueues[index].popped > 0) then
 					-- mercenary?
 					local text = ""
-					if (NS.CommFlare.CF.Queues[index].mercenary == true) then
+					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 						-- finalize text
 						text = strformat(L["Missed Mercenary Queue For Popped %s!"], mapName)
 					else
@@ -1533,9 +1709,180 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				end
 			end
 
-			-- clear queue
-			NS.CommFlare.CF.Queues[index] = nil
+			-- update local group
+			NS.CommFlare.CF.LocalQueues[index] = nil
+			NS.CommFlare.CF.SocialQueues["local"] = nil
+			NS.CommunityFlare_Update_Group("local")
 		end
+	end
+end
+
+-- update brawl status
+function NS.CommunityFlare_Update_Brawl_Status()
+	-- brawl queued?
+	local index = "Brawl"
+	local inParty, joined, queued, _, _, _, slotCount, category, leader, tank, healer, dps = GetLFGInfoServer(LE_LFG_CATEGORY_BATTLEFIELD)
+	if (category == LE_LFG_CATEGORY_BATTLEFIELD) then
+		-- get brawl info
+		local brawlInfo
+		if (PvPIsInBrawl() == true) then
+			brawlInfo = PvPGetActiveBrawlInfo()
+		else
+			brawlInfo = PvPGetAvailableBrawlInfo()
+		end
+
+		-- found brawl name
+		if (brawlInfo and brawlInfo.name and (brawlInfo.name ~= "")) then
+			-- joined?
+			local mapName = brawlInfo.name
+			if (joined == true) then
+				-- queued?
+				if (queued == true) then
+					-- just entering queue?
+					if (not NS.CommFlare.CF.LocalQueues[index] or not NS.CommFlare.CF.LocalQueues[index].name or (NS.CommFlare.CF.LocalQueues[index].name == "")) then
+						-- add to queues
+						NS.CommFlare.CF.LocalQueues[index] = {
+							["name"] = mapName,
+							["created"] = time(),
+							["entered"] = false,
+							["joined"] = true,
+							["popped"] = 0,
+							["status"] = "queued",
+							["suspended"] = false,
+							["type"] = index,
+						}
+
+						-- update local group
+						NS.CommunityFlare_Update_Group("local")
+
+						-- delay some
+						TimerAfter(0.5, function()
+							-- community reporter enabled?
+							if (NS.db.profile.communityReporter == true) then
+								-- are you group leader?
+								if (NS.CommunityFlare_IsGroupLeader() == true) then
+									-- report joined queue with estimated time
+									NS.CommFlare.CF.EstimatedWaitTime = 0
+									NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
+								end
+							end
+						end)
+					end
+				-- queue exists?
+				elseif (NS.CommFlare.CF.LocalQueues[index]) then
+					-- popped?
+					if ((NS.CommFlare.CF.LocalQueues[index].status == "popped") and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped == 0)) then
+						-- update popped time
+						NS.CommFlare.CF.LocalQueues[index].popped = time()
+
+						-- community reporter enabled?
+						if (NS.db.profile.communityReporter == true) then
+							-- are you group leader?
+							if (NS.CommunityFlare_IsGroupLeader() == true) then
+								-- finalize text
+								local count = NS.CommunityFlare_GetGroupCount()
+								text = strformat(L["%s Queue Popped For %s!"], count, mapName)
+
+								-- no specializations found? (probably solo Q)
+								if ((NS.CommFlare.CF.LocalData.NumTanks == 0) and (NS.CommFlare.CF.LocalData.NumHealers == 0) and (NS.CommFlare.CF.LocalData.NumDPS == 0)) then
+									-- get pvp roles
+									local isTank, isHealer, isDamage = GetPVPRoles()
+
+									-- tank?
+									if (isTank == true) then
+										-- tank spec
+										NS.CommFlare.CF.LocalData.NumTanks = 1
+									end
+	
+									-- tank?
+									if (isHealer == true) then
+										-- header spec
+										NS.CommFlare.CF.LocalData.NumHealers = 1
+									end
+
+									-- dps?
+									if (isDamage == true) then
+										-- header spec
+										NS.CommFlare.CF.LocalData.NumDPS = 1
+									end
+								end
+
+								-- add tanks / heals / dps counts
+								if ((NS.CommFlare.CF.LocalData.NumTanks > 0) or (NS.CommFlare.CF.LocalData.NumHealers > 0) or (NS.CommFlare.CF.LocalData.NumDPS > 0)) then
+									-- add counts
+									text = strformat(L["%s [%d Tanks, %d Healers, %d DPS]"], text, NS.CommFlare.CF.LocalData.NumTanks, NS.CommFlare.CF.LocalData.NumHealers, NS.CommFlare.CF.LocalData.NumDPS)
+								end
+
+								-- popped
+								NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+							end
+						end
+					end
+				end
+			else
+				-- clear local queue
+				NS.CommFlare.CF.LocalQueues[index] = nil
+			end
+		end
+	else
+		-- queue created?
+		if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].created and (NS.CommFlare.CF.LocalQueues[index].created > 0)) then
+			-- has name?
+			if (NS.CommFlare.CF.LocalQueues[index].name and (NS.CommFlare.CF.LocalQueues[index].name ~= "")) then
+				-- dropped?
+				local mapName = NS.CommFlare.CF.LocalQueues[index].name
+				if (NS.CommFlare.CF.LocalQueues[index].status == "queued") then
+					-- community reporter enabled?
+					if (NS.db.profile.communityReporter == true) then
+						-- are you group leader?
+						if (NS.CommunityFlare_IsGroupLeader() == true) then
+							-- dropped
+							local count = NS.CommunityFlare_GetGroupCount()
+							local text = strformat(L["%s Dropped Queue For %s!"], count, mapName)
+							NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+						end
+					end
+				-- failed?
+				elseif (NS.CommFlare.CF.LocalQueues[index].status == "failed") then
+					-- community reporter enabled?
+					if (NS.db.profile.communityReporter == true) then
+						-- are you group leader?
+						if (NS.CommunityFlare_IsGroupLeader() == true) then
+							-- missed
+							local text = strformat(L["Missed Queue For Popped %s!"], mapName)
+							NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+						end
+					end
+				-- entered?
+				elseif (NS.CommFlare.CF.LocalQueues[index].status == "entered") then
+					-- are you in a party?
+					if (IsInGroup() and not IsInRaid()) then
+						-- send party message
+						local text = strformat(L["Entered Queue For Popped %s!"], mapName)
+						NS.CommunityFlare_SendMessage(nil, text)
+					end
+				-- rejected?
+				elseif (NS.CommFlare.CF.LocalQueues[index].status == "rejected") then
+					-- left queue
+					local text = strformat(L["Left Queue For Popped %s!"], mapName)
+
+					-- community reporter enabled?
+					if (NS.db.profile.communityReporter == true) then
+						-- send to community?
+						NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+					end
+
+					-- are you in a party?
+					if (IsInGroup() and not IsInRaid()) then
+						-- send party message
+						NS.CommunityFlare_SendMessage(nil, text)
+					end
+				end
+			end
+		end
+
+		-- clear local queue
+		NS.CommFlare.CF.LocalQueues[index] = nil
 	end
 end
 
@@ -1569,54 +1916,8 @@ function NS.CommunityFlare_Initialize_Queue_Session()
 
 		-- uninvite enabled?
 		if ((uninviteTimer >= 3) and (uninviteTimer <= 6)) then
-			-- enable timer
-			TimerAfter(uninviteTimer, function()
-				local inProgress, slots, members, category, lfgID, bgQueue = GetLFGRoleUpdate()
-
-				-- not in progress?
-				if (inProgress ~= true) then
-					-- finished
-					return
-				end
-
-				-- not in a group?
-				if (not IsInGroup()) then
-					-- finished
-					return
-				end
-
-				-- in a raid?
-				if (IsInRaid()) then
-					-- finished
-					return
-				end
-
-				-- process all
-				for i=1, GetNumGroupMembers() do
-					local unit = "party" .. i
-					local player, realm = UnitName(unit)
-					if (player and (player ~= "")) then
-						-- check relationship
-						local realmRelationship = UnitRealmRelationship(unit)
-						if (realmRelationship == LE_REALM_RELATION_SAME) then
-							-- player with same realm
-							player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
-						else
-							-- player with different realm
-							player = player .. "-" .. realm
-						end
-
-						-- role not chosen?
-						if (not NS.CommFlare.CF.RoleChosen[player] or (NS.CommFlare.CF.RoleChosen[player] ~= true)) then
-							-- are you leader?
-							if (NS.CommunityFlare_IsGroupLeader() == true) then
-								-- ask to kick?
-								NS.CommunityFlare_PopupBox("CommunityFlare_Kick_Dialog", player)
-							end
-						end
-					end
-				end
-			end)
+			-- queue check role chosen (within timer)
+			TimerAfter(uninviteTimer, NS.CommunityFlare_Queue_Check_Role_Chosen)
 		end
 	end
 end

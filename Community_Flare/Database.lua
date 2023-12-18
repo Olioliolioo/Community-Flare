@@ -58,6 +58,15 @@ function NS.CommunityFlare_VerifyDefaultCommunitySetup()
 			if (not NS.db.profile.communityMain or (NS.db.profile.communityMain == 0)) then
 				-- force 1 for none
 				NS.db.profile.communityMain = 1
+
+				-- first time verifying?
+				if (NS.CommFlare.CF.DefaultVerified == false) then
+					-- default verified
+					NS.CommFlare.CF.DefaultVerified = true
+
+					-- display message
+					print(strformat(L["%s: No subscribed clubs found."], NS.CommunityFlare_Title))
+				end
 			end
 		-- only one found?
 		elseif (count == 1) then
@@ -291,6 +300,13 @@ function NS.CommunityFlare_CleanUpMembers()
 		if ((not v.leader or (v.leader == false)) and (not v.owner or (v.owner == false)) and (not v.moderator or (v.moderator == false))) then
 			-- reset priority
 			NS.db.global.members[player].priority = NS.CommFlare.CF.MaxPriority
+		end
+
+		-- has lastgrouped?
+		if (v.lastgrouped) then
+			-- move to history
+			NS.db.global.history[player].lastgrouped = v.lastgrouped
+			NS.db.global.members[player].lastgrouped = nil
 		end
 	end
 end
@@ -877,7 +893,6 @@ function NS.CommunityFlare_Process_Club_Members()
 	local clubs = NS.CommunityFlare_GetClubsList()
 	if (not clubs) then
 		-- no subscribed clubs found
-		print(strformat(L["%s: No subscribed clubs found."], NS.CommunityFlare_Title))
 		return false
 	end
 
@@ -1333,51 +1348,54 @@ function CommunityFlare_FindCommunityMemberByGUID(guid)
 	return nil
 end
 
--- create drop down extension
+-- show history
 NS.player_check = nil
+function NS.CommunityFlare_Show_History(...)
+	-- find member
+	local member = NS.CommunityFlare_GetCommunityMember(NS.player_check)
+	if (member) then
+		-- find history
+		print(strformat("%s: %s", NS.CommunityFlare_Title, member.name))
+		local history = NS.CommunityFlare_History_Get(NS.player_check)
+		if (history) then
+			-- has last seend?
+			if (history and history.lastseen) then
+				-- show last seen time
+				print(strformat("%s: %s %s", L["Last Seen"], L["Around"], history.lastseen))
+			else
+				-- not seen recently
+				print(strformat("%s: %s", L["Last Seen"], L["Not seen recently."]))
+			end
+
+			-- has last grouped?
+			if (history.lastgrouped) then
+				-- display last grouped
+				print(strformat("%s: %s", L["Last Grouped"], history.lastgrouped))
+			end
+
+			-- has grouped matches?
+			if (history.groupedmatches) then
+				-- display grouped matches count
+				print(strformat("%s: %d", L["Grouped Match Count"], history.groupedmatches))
+			end
+
+			-- has completed matches?
+			if (history.completedmatches) then
+				-- display completed matches count
+				print(strformat("%s: %d", L["Completed Match Count"], history.completedmatches))
+			end
+		end
+	else
+		-- not in database yet
+		print(strformat("%s: %s %s", L["Last Seen"], NS.player_check, L["is NOT in the Database."]))
+	end
+end
+
+-- create drop down extension
 NS.CommunityFlare_DropDownOptions = {
 	{
 		text = L["Last Seen Around?"],
-		func = function(...)
-			-- find member
-			local member = NS.CommunityFlare_GetCommunityMember(NS.player_check)
-			if (member) then
-				-- find history
-				print(strformat("%s: %s", NS.CommunityFlare_Title, member.name))
-				local history = NS.CommunityFlare_History_Get(NS.player_check)
-				if (history and history.lastseen) then
-					-- show last seen time
-					print(strformat("%s: %s %s", L["Last Seen"], L["Around"], history.lastseen))
-				else
-					-- not seen recently
-					print(strformat("%s: %s", L["Last Seen"], L["Not seen recently."]))
-				end
-
-				-- has history?
-				if (history) then
-					-- has last grouped?
-					if (history.lastgrouped) then
-						-- display last grouped
-						print(strformat("%s: %s", L["Last Grouped"], history.lastgrouped))
-					end
-
-					-- has grouped matches?
-					if (history.groupedmatches) then
-						-- display grouped matches count
-						print(strformat("%s: %d", L["Grouped Match Count"], history.groupedmatches))
-					end
-
-					-- has completed matches?
-					if (history.completedmatches) then
-						-- display completed matches count
-						print(strformat("%s: %d", L["Completed Match Count"], history.completedmatches))
-					end
-				end
-			else
-				-- not in database yet
-				print(strformat("%s: %s %s", L["Last Seen"], NS.player_check, L["is NOT in the Database."]))
-			end
-		end,
+		func = NS.CommunityFlare_Show_History,
 	},
 }
 
@@ -1402,6 +1420,7 @@ function NS.CommunityFlare_OnEvent(dropdown, event, options)
 			for i = 1, #NS.CommunityFlare_DropDownOptions do
 				options[i] = NS.CommunityFlare_DropDownOptions[i]
 			end
+
 			-- we have added options to the dropdown menu
 			return true
 		-- hiding?

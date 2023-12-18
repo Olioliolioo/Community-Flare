@@ -31,7 +31,7 @@ NS.Libs = {
 }
 
 -- initialize
-NS.CommFlare = NS.Libs.AceAddon:NewAddon(ADDON_NAME, "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0")
+NS.CommFlare = NS.Libs.AceAddon:NewAddon(ADDON_NAME, "AceComm-3.0", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
 NS.CommFlare.CF = {
 	-- strings
 	MapName = "N/A",
@@ -44,9 +44,11 @@ NS.CommFlare.CF = {
 	AutoPromote = false,
 	AutoQueue = false,
 	AutoQueueable = false,
+	DefaultVerified = false,
 	Disabled = false,
 	InitialLogin = false,
 	HasAura = false,
+	Popped = false,
 	Reloaded = false,
 
 	-- numbers
@@ -54,11 +56,13 @@ NS.CommFlare.CF = {
 	Count = 0,
 	CountDown = 0,
 	CommCount = 0,
+	EnteredTime = 0,
 	EstimatedWaitTime = 0,
 	Expiration = 0,
 	HideIndex = 0,
 	IsHealer = 0,
 	IsTank = 0,
+	LeftTime = 0,
 	LogListCount = 0,
 	MapID = 0,
 	MatchStartTime = 0,
@@ -90,7 +94,10 @@ NS.CommFlare.CF = {
 	CommNames = {},
 	CommNamesList = {},
 	CommunityLeaders = {},
+	CurrentPopped = {},
 	InternalCommands = {},
+	LocalData = {},
+	LocalQueues = {},
 	LogListNamesList = {},
 	MapInfo = {},
 	MemberInfo = {},
@@ -100,9 +107,10 @@ NS.CommFlare.CF = {
 	PartyVersions = {},
 	PlayerInfo = {},
 	POIInfo = {},
-	Queues = {},
+	PoppedGroups = {},
 	ReadyCheck = {},
 	RoleChosen = {},
+	RoleCounts = {},
 	SocialQueues = {},
 	StatusCheck = {},
 	WidgetInfo = {},
@@ -126,20 +134,42 @@ function NS.CommFlare:RefreshConfig()
 	NS.CommunityFlare_Setup_Other_Community_List(nil)
 end
 
+-- handle incoming commands
+function NS.CommFlare:FloatingChatFrameManager_OnEvent(self, event, ...)
+	-- internal command?
+	local text, sender, _, _, _, _, _, _, _, _, _, _, bnSenderID = ...
+	if (text:find("!CF@")) then
+		-- normal whisper?
+		if (event == "CHAT_MSG_WHISPER") then
+			-- handle commands
+			NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
+		-- Battle.NET whisper?
+		elseif (event == "CHAT_MSG_BN_WHISPER") then
+			-- handle commands
+			NS.CommunityFlare_Handle_Internal_Commands(event, bnSenderID, text, ...)
+		end
+	-- afk?
+	elseif (event == "CHAT_MSG_AFK") then
+		-- nothing
+	else
+		-- call original
+		NS.CommFlare.hooks[FloatingChatFrameManager].OnEvent(self, event, ...)
+	end
+end
+
 -- on initialize
 function NS.CommFlare:OnInitialize()
-	-- setup options stuff
+	-- setup stuff
 	NS.db = NS.Libs.AceDB:New("CommunityFlareDB", NS.defaults)
 	NS.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	NS.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	NS.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
 	NS.Libs.AceConfig:RegisterOptionsTable("CommFlare_Options", NS.options)
 	self.optionsFrame = NS.Libs.AceConfigDialog:AddToBlizOptions("CommFlare_Options", NS.CommunityFlare_Title)
-
-	-- setup profile stuff
 	NS.profiles = NS.Libs.AceDBOptions:GetOptionsTable(NS.db)
 	NS.Libs.AceConfig:RegisterOptionsTable("CommFlare_Profiles", NS.profiles)
 	self.profilesFrame = NS.Libs.AceConfigDialog:AddToBlizOptions("CommFlare_Profiles", "Profiles", NS.CommunityFlare_Title)
+	NS.CommFlare:RawHookScript(FloatingChatFrameManager, "OnEvent", "FloatingChatFrameManager_OnEvent")
 
 	-- check for old string values?
 	if (type(NS.db.profile.blockSharedQuests) == "string") then

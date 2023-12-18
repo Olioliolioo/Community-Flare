@@ -1,7 +1,7 @@
 ## Interface: 100200
 ## Title: Community Flare
-## Version: v1.02
-## X-Build: 102001
+## Version: v1.03
+## X-Build: 103001
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
 ## OptionalDeps: Ace3
@@ -31,6 +31,7 @@ Libs\LibDeflate\lib.xml
 
 Bootstrap.lua
 Locales\enUS.lua
+Locales\frFR.lua
 Config.lua
 Battlegrounds.lua
 Database.lua
@@ -39,3 +40,4 @@ Events.lua
 History.lua
 Init.lua
 Social.lua
+Transmission.lua

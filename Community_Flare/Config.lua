@@ -419,6 +419,7 @@ NS.defaults = {
 		communityPartyLeader = false,
 		communityReporter = true,
 		debugMode = false,
+		displayPoppedGroups = true,
 		partyLeaderNotify = 2,
 		popupQueueWindow = false,
 		printDebugInfo = false,
@@ -563,6 +564,15 @@ NS.options = {
 					width = "full",
 					get = function(info) return NS.db.profile.communityAutoQueue end,
 					set = function(info, value) NS.db.profile.communityAutoQueue = value end,
+				},
+				displayPoppedGroups = {
+					type = "toggle",
+					order = 3,
+					name = L["Display notification for popped groups?"],
+					desc = L["This will display a notification in your General chat window when groups pop."],
+					width = "full",
+					get = function(info) return NS.db.profile.displayPoppedGroups end,
+					set = function(info, value) NS.db.profile.displayPoppedGroups = value end,
 				},
 				popupQueueWindow = {
 					type = "toggle",

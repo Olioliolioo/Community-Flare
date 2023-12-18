@@ -144,7 +144,7 @@ function NS.CommunityFlare_History_Update_Last_Grouped(player)
 	end
 
 	-- save last grouped
-	NS.db.global.members[player].lastgrouped = date()
+	NS.db.global.history[player].lastgrouped = date()
 	return true
 end
 
