@@ -200,6 +200,21 @@ function NS.CommunityFlare_IsTrackedPVP(name)
 	return false, nil, nil, nil
 end
 
+-- is mercenary queued?
+function NS.CommunityFlare_Battleground_IsMercenaryQueued()
+	-- process all
+	for k,v in pairs(NS.CommFlare.CF.LocalQueues) do
+		-- mercenary?
+		if (v.mercenary and (v.mercenary == true)) then
+			-- yes
+			return true
+		end
+	end
+
+	-- no
+	return false
+end
+
 -- get battleground map name
 function NS.CommunityFlare_Battleground_Get_Map_Name()
 	-- inside brawl?
@@ -988,7 +1003,7 @@ end
 -- process pass leadership
 function NS.CommunityFlare_Process_Pass_Leadership(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return
 	end
@@ -1061,7 +1076,7 @@ end
 -- process auto invite
 function NS.CommunityFlare_Process_Auto_Invite(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, false) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return
 	end
@@ -1165,7 +1180,7 @@ end
 -- process status check
 function NS.CommunityFlare_Process_Status_Check(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return
 	end
@@ -1394,19 +1409,12 @@ function NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
 				NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
 				NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
 
-				-- does the player have the mercenary buff?
+				-- mercenary queue?
 				local time_waited = strformat(L["%d minutes, %d seconds"], NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
-				NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-				if (NS.CommFlare.CF.HasAura == true) then
-					-- build text for mercenary queue
-					NS.CommFlare.CF.LocalQueues[index].mercenary = true
-
+				if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 					-- finalize text
 					text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
 				else
-					-- build text for normal epic battleground queue
-					NS.CommFlare.CF.LocalQueues[index].mercenary = false
-
 					-- finalize text
 					text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, time_waited)
 				end
@@ -1424,18 +1432,11 @@ function NS.CommunityFlare_Report_Joined_With_Estimated_Time(index)
 					return
 				end
 
-				-- does the player have the mercenary buff?
-				NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-				if (NS.CommFlare.CF.HasAura == true) then
-					-- build text for mercenary queue
-					NS.CommFlare.CF.LocalQueues[index].mercenary = true
-
+				-- mercenary queue?
+				if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 					-- finalize text
 					text = strformat(L["%s Joined Mercenary Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
 				else
-					-- build text for normal epic battleground queue
-					NS.CommFlare.CF.LocalQueues[index].mercenary = false
-
 					-- finalize text
 					text = strformat(L["%s Joined Queue For %s! Estimated Wait: %s!"], text, mapName, L["N/A"])
 				end
@@ -1502,12 +1503,21 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 		if (status == "queued") then
 			-- just entering queue?
 			if (not NS.CommFlare.CF.LocalQueues[index] or not NS.CommFlare.CF.LocalQueues[index].name or (NS.CommFlare.CF.LocalQueues[index].name == "")) then
+				-- does the player have the mercenary buff?
+				local mercenary = false
+				NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+				if (NS.CommFlare.CF.HasAura == true) then
+					-- mercenary
+					mercenary = true
+				end
+
 				-- add to queues
 				NS.CommFlare.CF.LocalQueues[index] = {
 					["name"] = mapName,
 					["created"] = time(),
 					["entered"] = false,
 					["joined"] = true,
+					["mercenary"] = mercenary,
 					["popped"] = 0,
 					["status"] = status,
 					["suspended"] = false,
@@ -1600,7 +1610,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					if (NS.db.profile.communityReporter == true) then
 						-- are you group leader?
 						if (NS.CommunityFlare_IsGroupLeader() == true) then
-							-- mercenary?
+							-- mercenary queue?
 							local text = ""
 							local mercenary = ""
 							local count = NS.CommunityFlare_GetGroupCount()
@@ -1668,7 +1678,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					if (NS.db.profile.communityReporter == true) then
 						-- are you group leader?
 						if (NS.CommunityFlare_IsGroupLeader() == true) then
-							-- mercenary?
+							-- mercenary queue?
 							local text = ""
 							local count = NS.CommunityFlare_GetGroupCount()
 							if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
@@ -1685,7 +1695,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					end
 				-- popped?
 				elseif (NS.CommFlare.CF.LocalQueues[index].popped > 0) then
-					-- mercenary?
+					-- mercenary queue?
 					local text = ""
 					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
 						-- finalize text

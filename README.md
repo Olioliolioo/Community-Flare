@@ -20,6 +20,10 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.04 features:
+-Block group invites if you are currently queued for a Battleground as a mercenary.
+--This normally would auto accept the invite and drop your queue!
+
 v1.03 features:
 -No Subscribed clubs found message will only show up once per character that does not have any club selected.
 -Can Report Queue Joins/Drops/Pops/etc for Brawl: Comp Stomp.

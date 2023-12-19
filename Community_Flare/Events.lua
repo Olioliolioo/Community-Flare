@@ -500,6 +500,16 @@ function NS.CommFlare:ADDON_LOADED(msg, ...)
 	end
 end
 
+-- process battle net message addon
+function NS.CommFlare:BN_CHAT_MSG_ADDON(msg, ...)
+	local prefix, text, channel, senderID = ...
+	print("BN_CHAT_MSG_ADDON:")
+	print("prefix: ", prefix)
+	print("text: ", text)
+	print("channel: ", channel)
+	print("senderID: ", senderID)
+end
+
 -- process chat battle net whisper
 function NS.CommFlare:CHAT_MSG_BN_WHISPER(msg, ...)
 	local text, sender, _, _, _, _, _, _, _, _, _, _, bnSenderID = ...
@@ -822,6 +832,22 @@ function NS.CommFlare:GROUP_INVITE_CONFIRMATION(msg)
 		autoInvite = true
 	end
 
+	-- mercenary queued?
+	if (NS.CommunityFlare_Battleground_IsMercenaryQueued() == true) then
+		-- get next pending invite
+		local invite = GetNextPendingInviteConfirmation()
+		if (invite) then
+			-- cancel invite
+			RespondToInviteConfirmation(invite, false)
+
+			-- hide popup
+			if (StaticPopup_FindVisible("GROUP_INVITE_CONFIRMATION")) then
+				-- hide
+				StaticPopup_Hide("GROUP_INVITE_CONFIRMATION")
+			end
+		end
+	end
+
 	-- check for auto invites?
 	if (autoInvite == true) then
 		-- read the text
@@ -990,7 +1016,7 @@ function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
 						break
 					end
 
-				-- promote this leader
+					-- promote this leader
 					if (NS.CommunityFlare_PromoteToRaidLeader(v) == true) then
 						-- success
 						break
@@ -1004,6 +1030,19 @@ function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
 		if (IsInGroup() and not IsInRaid()) then
 			-- are you group leader?
 			if (NS.CommunityFlare_IsGroupLeader() == true) then
+				-- community member?
+				local message = "GROUP_ROSTER_UPDATE"
+				if (NS.db.profile.communityMain > 1) then
+					-- append YES
+					message = message .. ":YES"
+				else
+					-- append NO
+					message = message .. ":NO"
+				end
+
+				-- send party that leader has community flare
+				NS.CommFlare:SendCommMessage(ADDON_NAME, message, "PARTY")
+
 				-- check current players in home party
 				local count = 1
 				local players = GetHomePartyInfo()
@@ -1967,6 +2006,7 @@ end
 function NS.CommFlare:OnEnable()
 	-- register events
 	self:RegisterEvent("ADDON_LOADED")
+	self:RegisterEvent("BN_CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_BN_WHISPER")
 	self:RegisterEvent("CHAT_MSG_PARTY")
 	self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -2017,6 +2057,7 @@ end
 function NS.CommFlare:OnDisable()
 	-- unregister events
 	self:UnregisterEvent("ADDON_LOADED")
+	self:UnregisterEvent("BN_CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_BN_WHISPER")
 	self:UnregisterEvent("CHAT_MSG_PARTY")
 	self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")

@@ -685,7 +685,7 @@ end
 -- process version check
 function NS.CommunityFlare_Process_Version_Check(sender)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, false) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return
 	end

@@ -4,7 +4,15 @@ local ADDON_NAME, NS = ...
 -- localize stuff
 local _G                                        = _G
 local GetAddOnMetadata                          = _G.C_AddOns and _G.C_AddOns.GetAddOnMetadata or _G.GetAddOnMetadata
+local GetInviteConfirmationInfo                 = _G.GetInviteConfirmationInfo
+local GetNextPendingInviteConfirmation          = _G.GetNextPendingInviteConfirmation
+local RespondToInviteConfirmation               = _G.RespondToInviteConfirmation
 local Settings_OpenToCategory                   = _G.Settings.OpenToCategory
+local SocialQueueUtil_GetRelationshipInfo       = _G.SocialQueueUtil_GetRelationshipInfo
+local StaticPopup_FindVisible                   = _G.StaticPopup_FindVisible
+local StaticPopup_Hide                          = _G.StaticPopup_Hide
+local BattleNetGetAccountInfoByGUID             = _G.C_BattleNet.GetAccountInfoByGUID
+local PartyInfoGetInviteReferralInfo            = _G.C_PartyInfo.GetInviteReferralInfo
 local tonumber                                  = _G.tonumber
 local type                                      = _G.type
 local strformat                                 = _G.string.format
@@ -134,6 +142,45 @@ function NS.CommFlare:RefreshConfig()
 	NS.CommunityFlare_Setup_Other_Community_List(nil)
 end
 
+-- handle pending invite confirmations
+function NS.CommFlare:HandlePendingInviteConfirmation(invite)
+	-- mercenary queued?
+	if (NS.CommunityFlare_Battleground_IsMercenaryQueued() == true) then
+		-- get next pending invite
+		local invite = GetNextPendingInviteConfirmation()
+		if (invite) then
+			-- get invite confirmation info
+			local confirmationType, sender, guid, rolesInvalid, willConvertToRaid, level, spec, itemLevel = GetInviteConfirmationInfo(invite)
+			local referredByGuid, referredByName, relationType, isQuickJoin, clubId = PartyInfoGetInviteReferralInfo(invite)
+			local playerName, color, selfRelationship = SocialQueueUtil_GetRelationshipInfo(guid, name, clubId)
+
+			-- cancel invite
+			RespondToInviteConfirmation(invite, false)
+
+			-- hide popup
+			if (StaticPopup_FindVisible("GROUP_INVITE_CONFIRMATION")) then
+				-- hide
+				StaticPopup_Hide("GROUP_INVITE_CONFIRMATION")
+			end
+
+			-- battle net friend?
+			if (selfRelationship == "bnfriend") then
+				local accountInfo = BattleNetGetAccountInfoByGUID(guid)
+				if (accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.playerGuid) then
+					-- send battle net message
+					NS.CommunityFlare_SendMessage(accountInfo.bnetAccountID, L["Sorry, can not accept invites while currently queued as a mercenary."])
+				end
+			else
+				-- send message
+				NS.CommunityFlare_SendMessage(sender, L["Sorry, can not accept invites while currently queued as a mercenary."])
+			end
+		end
+	else
+		-- call original
+		NS.CommFlare.hooks.HandlePendingInviteConfirmation(invite)
+	end
+end
+
 -- handle incoming commands
 function NS.CommFlare:FloatingChatFrameManager_OnEvent(self, event, ...)
 	-- internal command?
@@ -169,6 +216,7 @@ function NS.CommFlare:OnInitialize()
 	NS.profiles = NS.Libs.AceDBOptions:GetOptionsTable(NS.db)
 	NS.Libs.AceConfig:RegisterOptionsTable("CommFlare_Profiles", NS.profiles)
 	self.profilesFrame = NS.Libs.AceConfigDialog:AddToBlizOptions("CommFlare_Profiles", "Profiles", NS.CommunityFlare_Title)
+	NS.CommFlare:RawHook("HandlePendingInviteConfirmation", true)
 	NS.CommFlare:RawHookScript(FloatingChatFrameManager, "OnEvent", "FloatingChatFrameManager_OnEvent")
 
 	-- check for old string values?

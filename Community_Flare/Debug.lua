@@ -29,7 +29,7 @@ function NS.CommunityFlare_Process_Debug_Command(sender, args)
 	end
 
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return
 	end

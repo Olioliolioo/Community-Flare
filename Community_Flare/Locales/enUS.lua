@@ -95,6 +95,9 @@ L["Up"] = true
 L["Warsong Gulch"] = true
 L["West"] = true
 
+-- Bootstrap.lua
+L["Sorry, can not accept invites while currently queued as a mercenary."] = true
+
 -- Config.lua
 L["%d community leaders found."] = true
 L["3 Seconds"] = true

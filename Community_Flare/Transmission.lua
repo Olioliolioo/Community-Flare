@@ -539,7 +539,7 @@ end
 -- handle internal commands
 function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender, true) == false) then
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
 		-- finished
 		return true
 	end

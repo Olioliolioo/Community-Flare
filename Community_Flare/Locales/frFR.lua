@@ -95,6 +95,9 @@ L["Up"] = "En haut"
 L["Warsong Gulch"] = "Goulet de Warsong"
 L["West"] = "à l'ouest"
 
+-- Bootstrap.lua
+L["Sorry, can not accept invites while currently queued as a mercenary."] = "Désolé, je ne peux pas accepter les invitations alors que je suis actuellement en file d'attente en tant que mercenaire."
+
 -- Config.lua
 L["%d community leaders found."] = "%d chef de la communauté trouvé"
 L["3 Seconds"] = "3 secondes"
