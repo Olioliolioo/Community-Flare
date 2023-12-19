@@ -503,11 +503,6 @@ end
 -- process battle net message addon
 function NS.CommFlare:BN_CHAT_MSG_ADDON(msg, ...)
 	local prefix, text, channel, senderID = ...
-	print("BN_CHAT_MSG_ADDON:")
-	print("prefix: ", prefix)
-	print("text: ", text)
-	print("channel: ", channel)
-	print("senderID: ", senderID)
 end
 
 -- process chat battle net whisper
