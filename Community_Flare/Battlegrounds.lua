@@ -981,17 +981,18 @@ function NS.CommunityFlare_Match_Started_Log_Roster()
 				NS.db.global.matchLogList = {}
 			end
 
-			-- remove profile match log li st
+			-- remove profile match log list
 			if (NS.db.profile.matchLogList) then
-				-- remoive
+				-- remove
 				NS.db.profile.matchLogList = nil
 			end
 
 			-- no date?
 			if (NS.CommFlare.CF.MatchStartDate and (NS.CommFlare.CF.MatchStartDate ~= "")) then
 				-- save match log
+				local timestamp = time()
 				local player = NS.CommunityFlare_GetPlayerName("full")
-				tinsert(NS.db.global.matchLogList, strformat(L["Date: %s; MapName: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapName, player, list))
+				NS.db.global.matchLogList[timestamp] = strformat(L["Date: %s; MapName: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapName, player, list)
 
 				-- logged
 				NS.CommFlare.CF.MatchStartLogged = true

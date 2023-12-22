@@ -981,6 +981,23 @@ function NS.CommunityFlare_Refresh_Club_Members()
 		NS.db.profile.communityRefreshed = time()
 	end
 
+	-- purge older
+	local timestamp = time()
+	for k,v in pairs(NS.db.global.matchLogList) do
+		-- old format?
+		if ((type(k) ~= "number") or (k < 100000)) then
+			-- delete
+			NS.db.global.matchLogList[k] = nil
+		else
+			-- older than 7 days?
+			local older = k + (7 * 86400)
+			if (timestamp > older) then
+				-- delete
+				NS.db.global.matchLogList[k] = nil
+			end
+		end
+	end
+
 	-- clean up members
 	NS.CommunityFlare_CleanUpMembers()
 end
@@ -1394,7 +1411,7 @@ function NS.CommunityFlare_OnEvent(dropdown, event, options)
 	-- communities only
 	NS.player_check = nil
 	local club = dropdown.clubInfo
-	if (club.clubType == Enum.ClubType.Character) then
+	if (club and (club.clubType == Enum.ClubType.Character)) then
 		local name = dropdown.name
 		local server = dropdown.server
 		if (server == nil) then

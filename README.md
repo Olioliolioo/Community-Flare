@@ -20,6 +20,10 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.05 features:
+-Match Logs are kept for previous 7 days only to avoid super large settings files.
+-/comf options will open the Community Flare options.
+
 v1.04 features:
 -Block group invites if you are currently queued for a Battleground as a mercenary.
 --This normally would auto accept the invite and drop your queue!

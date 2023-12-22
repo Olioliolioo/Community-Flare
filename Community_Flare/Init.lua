@@ -12,6 +12,7 @@ end
 local _G                                        = _G
 local BNGetFriendAccountInfo                    = _G.C_BattleNet.GetFriendAccountInfo
 local BNGetFriendIndex                          = _G.BNGetFriendIndex
+local BNGetNumFriends                           = _G.BNGetNumFriends
 local BNSendWhisper                             = _G.BNSendWhisper
 local Chat_GetCommunitiesChannel                = _G.Chat_GetCommunitiesChannel
 local Chat_GetCommunitiesChannelName            = _G.Chat_GetCommunitiesChannelName
@@ -39,6 +40,7 @@ local UnitIsGroupLeader                         = _G.UnitIsGroupLeader
 local UnitName                                  = _G.UnitName
 local UnitRealmRelationship                     = _G.UnitRealmRelationship
 local AuraUtilForEachAura                       = _G.AuraUtil.ForEachAura
+local BattleNetGetFriendAccountInfo             = _G.C_BattleNet.GetFriendAccountInfo
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
@@ -365,6 +367,31 @@ function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
 			if (accountInfo.playerGuid) then
 				-- build full player-realm
 				return strformat("%s-%s", accountInfo.characterName, accountInfo.realmName)
+			end
+		end
+	end
+
+	-- failed
+	return nil
+end
+
+-- get battle net presenceID by name-server
+function NS.CommunityFlare_GetBNetPresenceIDByName(player)
+	-- split name / realm
+	local name, realm = strsplit("-", player)
+	if (not realm or (realm == "")) then
+		-- same realm name
+		realm = NS.CommFlare.CF.PlayerServerNam
+	end
+
+	-- process all friends
+	for i = 1, BNGetNumFriends() do
+		local accountInfo = BattleNetGetFriendAccountInfo(i)
+		if (accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.playerGuid) then
+			-- matches name and realm?
+			if ((accountInfo.gameAccountInfo.characterName == name) and (accountInfo.gameAccountInfo.realmName == realm)) then
+				-- found
+				return i
 			end
 		end
 	end

@@ -276,6 +276,7 @@ L["%s: Group%d = %d Members"] = "%s: Group%d = %d Membres"
 L["Community Leader %s has queued for %s. You should probably queue up now too!"] = "Chef de la communauté %s a rejoint la file d'attente pour %s. Vous devriez rejoindre la file d'attente également!"
 
 -- Transmission.lua
+L["%s: %s does not have the Deserter debuff."] = "%s : %s n'a pas le débuff Déserteur."
 L["%s: %s has %s"] = "%s: %s a %s"
 L["%s: %s has entered popped queue for %s with %s members."] = "%s: %s est entré dans la file d'attente sautée pour %s avec %s membres."
 L["%s: %s has left popped queue for %s with %s members."] = "%s: %s a quitté la file d'attente sautée pour %s avec %s membres."
@@ -284,6 +285,7 @@ L["%s: %s has Mercenary Contract disabled."] = "%s: %s a désactivé le Contrat 
 L["%s: %s has no queues found."] = "%s: %s n'a pas de file d'attente de partie trouvée"
 L["%s: %s has queue for %s-%s for %s with %d/5 members."] = "%s: %s est en file d'attente pour %s-%s pour %s avec %d/5 membres."
 L["%s: %s has queue pop for %s with %s members."] = "%s: %s a une file d'attente pour %s avec %s membres."
+L["%s: %s has the Deserter debuff."] = "%s : %s a le débuff Déserteur."
 L["%s: %s has version %s (%s)"] = "%s: %s a la version %s (%s)"
 L["%s: %s is not in queue."] = "%s n'est pas dans une file d'attente."
 L["%s: %s is in %s. (Map ID = %s)"] = "%s: %s est dans %s. (Identification de carte = %s"

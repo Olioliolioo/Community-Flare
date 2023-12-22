@@ -62,6 +62,7 @@ local PvPGetActiveMatchDuration                 = _G.C_PvP.GetActiveMatchDuratio
 local PvPGetScoreInfoByPlayerGuid               = _G.C_PvP.GetScoreInfoByPlayerGuid
 local PvPIsArena                                = _G.C_PvP.IsArena
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
+local Settings_OpenToCategory                   = _G.Settings.OpenToCategory
 local SocialQueueGetGroupInfo                   = _G.C_SocialQueue.GetGroupInfo
 local SocialQueueGetGroupQueues                 = _G.C_SocialQueue.GetGroupQueues
 local TimerAfter                                = _G.C_Timer.After
@@ -2181,6 +2182,10 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 			count = count + 1
 		end
 		print(strformat(L["%s: %d Community Leaders found."], NS.CommunityFlare_Title, count))
+	elseif (lower == "options") then
+		-- open options to Community Flare
+		Settings_OpenToCategory(NS.CommunityFlare_Title)
+		Settings_OpenToCategory(NS.CommunityFlare_Title) -- open options again (wow bug workaround)
 	elseif (lower == "pois") then
 		-- list all POI's
 		NS.CommunityFlare_List_POIs()

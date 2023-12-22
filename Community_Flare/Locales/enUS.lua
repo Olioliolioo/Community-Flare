@@ -276,6 +276,7 @@ L["%s: Group%d = %d Members"] = true
 L["Community Leader %s has queued for %s. You should probably queue up now too!"] = true
 
 -- Transmission.lua
+L["%s: %s does not have the Deserter debuff."] = true
 L["%s: %s has %s"] = true
 L["%s: %s has entered popped queue for %s with %s members."] = true
 L["%s: %s has left popped queue for %s with %s members."] = true
@@ -284,6 +285,7 @@ L["%s: %s has Mercenary Contract disabled."] = true
 L["%s: %s has no queues found."] = true
 L["%s: %s has queue for %s-%s for %s with %d/5 members."] = true
 L["%s: %s has queue pop for %s with %s members."] = true
+L["%s: %s has the Deserter debuff."] = true
 L["%s: %s has version %s (%s)"] = true
 L["%s: %s is not in queue."] = true
 L["%s: %s is in %s. (Map ID = %s)"] = true

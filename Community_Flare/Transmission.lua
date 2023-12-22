@@ -29,9 +29,11 @@ local SocialQueueGetGroupInfo                   = _G.C_SocialQueue.GetGroupInfo
 local SocialQueueGetGroupMembers                = _G.C_SocialQueue.GetGroupMembers
 local SocialQueueGetGroupQueues                 = _G.C_SocialQueue.GetGroupQueues
 local TimerAfter                                = _G.C_Timer.After
+local date                                      = _G.date
 local ipairs                                    = _G.ipairs
 local pairs                                     = _G.pairs
 local print                                     = _G.print
+local time                                      = _G.time
 local tonumber                                  = _G.tonumber
 local tostring                                  = _G.tostring
 local type                                      = _G.type
@@ -41,6 +43,30 @@ local strlen                                    = _G.string.len
 local strlower                                  = _G.string.lower
 local strsplit                                  = _G.string.split
 local tinsert                                   = _G.table.insert
+
+-- log command
+function NS.CommunityFlare_Log_Command(event, sender, text)
+	-- table initialized?
+	if (not NS.db.global.commandsLog) then
+		-- initialize
+		NS.db.global.commandsLog = {}
+	end
+
+	-- purge older
+	local timestamp = time()
+	for k,v in pairs(NS.db.global.commandsLog) do
+		-- older than 7 days?
+		local older = k + (7 * 86400)
+		if (timestamp > older) then
+			-- delete
+			NS.db.global.commandsLog[k] = nil
+		end
+	end
+
+	-- log it
+	local datestamp = date()
+	NS.db.global.commandsLog[timestamp] = strformat("%s: %s = %s at %s", event, sender, text, datestamp)
+end
 
 -- process battleground commands
 function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command, subcommand, result)
@@ -55,36 +81,34 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 		-- find active battleground
 		local text = ""
 		for i=1, GetMaxBattlefieldID() do
-			-- active match?
-			local status, mapName = GetBattlefieldStatus(i)
-
 			-- has status to send?
+			local status, mapName = GetBattlefieldStatus(i)
 			if ((status == "active") or (status == "confirm") or (status == "queued")) then
 				-- already has text?
 				if (text ~= "") then
 					-- add separator
 					text = text .. ";"
 				end
-			end
 
-			-- active?
-			if (status == "active") then
-				-- add bg info
-				local runtime = GetBattlefieldInstanceRunTime()
-				local duration = PvPGetActiveMatchDuration() * 1000
-				text = text .. strformat("A,%s,%d,%d", mapName, duration, runtime)
-			-- confirm?
-			elseif (status == "confirm") then
-				-- add pop info
-				local count = NS.CommunityFlare_GetGroupCount()
-				local expiration = GetBattlefieldPortExpiration(i) * 1000
-				text = text .. strformat("C,%s,%d,%d", mapName, expiration, count)
-			-- queued?
-			elseif (status == "queued") then
-				-- add queue info
-				local waited = GetBattlefieldTimeWaited(i)
-				local estimated = GetBattlefieldEstimatedWaitTime(i)
-				text = text .. strformat("Q,%s,%d,%d", mapName, waited, estimated)
+				-- active?
+				if (status == "active") then
+					-- add bg info
+					local runtime = GetBattlefieldInstanceRunTime()
+					local duration = PvPGetActiveMatchDuration() * 1000
+					text = text .. strformat("A,%s,%d,%d", mapName, duration, runtime)
+				-- confirm?
+				elseif (status == "confirm") then
+					-- add pop info
+					local count = NS.CommunityFlare_GetGroupCount()
+					local expiration = GetBattlefieldPortExpiration(i) * 1000
+					text = text .. strformat("C,%s,%d,%d", mapName, expiration, count)
+				-- queued?
+				elseif (status == "queued") then
+					-- add queue info
+					local waited = GetBattlefieldTimeWaited(i)
+					local estimated = GetBattlefieldEstimatedWaitTime(i)
+					text = text .. strformat("Q,%s,%d,%d", mapName, waited, estimated)
+				end
 			end
 		end
 
@@ -96,8 +120,21 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 
 		-- send message
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Battleground@Status@%s", text))
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- none?
 		if (result == "none") then
 			-- display sender is not in queue
@@ -106,10 +143,8 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 			-- split arguments
 			local queues = {strsplit(";", result)}
 			for k,v in ipairs(queues) do
-				-- display sender queue info
-				local status, mapName, arg1, arg2 = strsplit(",", v)
-
 				-- active?
+				local status, mapName, arg1, arg2 = strsplit(",", v)
 				if (status == "A") then
 					-- calculate times
 					local msecs = { tonumber(arg1), tonumber(arg2) }
@@ -153,6 +188,54 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 	return true
 end
 
+-- process deserter commands
+function NS.CommunityFlare_Process_Deserter_Commands(event, sender, command, subcommand, result)
+	-- sanity check
+	if ((subcommand ~= "check") and (subcommand ~= "status")) then
+		-- finished
+		return true
+	end
+
+	-- check?
+	if (subcommand == "check") then
+		-- check for deserter
+		NS.CommunityFlare_CheckForAura("player", "HARMFUL", L["Deserter"])
+		if (NS.CommFlare.CF.HasAura == false) then
+			-- send message
+			NS.CommunityFlare_SendMessage(sender, strformat("!CF@Deserter@Status@%s", "true"))
+		else
+			-- send message
+			NS.CommunityFlare_SendMessage(sender, strformat("!CF@Deserter@Status@%s", "false"))
+		end
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
+	-- status?
+	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
+		-- is mercenary?
+		if (result == "true") then
+			-- mercenary enabled
+			print(strformat(L["%s: %s has the Deserter debuff."], NS.CommunityFlare_Title, sender))
+		elseif (result == "false") then
+			-- mercenary disabled
+			print(strformat(L["%s: %s does not have the Deserter debuff."], NS.CommunityFlare_Title, sender))
+		end
+	end
+
+	-- finished
+	return true
+end
+
 -- process map commands
 function NS.CommunityFlare_Process_Map_Commands(event, sender, command, subcommand, result)
 	-- sanity check
@@ -167,8 +250,21 @@ function NS.CommunityFlare_Process_Map_Commands(event, sender, command, subcomma
 		local mapID = MapGetBestMapForUnit("player")
 		local info = MapGetMapInfo(mapID)
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Map@Status@%d,%s", mapID, info.name))
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- display map info
 		local mapID, mapName = strsplit(",", result)
 		print(strformat(L["%s: %s is in %s. (Map ID = %s)"], NS.CommunityFlare_Title, sender, mapName, mapID))
@@ -197,8 +293,21 @@ function NS.CommunityFlare_Process_Mercenary_Commands(event, sender, command, su
 			-- send message
 			NS.CommunityFlare_SendMessage(sender, strformat("!CF@Mercenary@Status@%s", "false"))
 		end
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- is mercenary?
 		if (result == "true") then
 			-- mercenary enabled
@@ -229,8 +338,21 @@ function NS.CommunityFlare_Process_Party_Commands(event, sender, command, subcom
 		local numGroupMembers = GetNumGroupMembers()
 		local numSubgroupMembers = GetNumSubgroupMembers()
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Party@Status@%s,%s,%d,%d", isRaid, isGroup, numGroupMembers, numSubgroupMembers))
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- check status
 		local isRaid, isGroup, numGroupMembers, numSubGroupMembers = strsplit(",", result)
 		if (isRaid == "true") then
@@ -342,8 +464,21 @@ function NS.CommunityFlare_Process_Pop_Commands(event, sender, command, subcomma
 
 		-- send pop info
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Pop@Status@%s,%s,%s,%s,%s", action, popped, count, queueMapName, mercenary))
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- is player mercenary?
 		local action, popped, count, mapName, mercenary = strsplit(",", result)
 		if (mercenary == "true") then
@@ -402,14 +537,16 @@ function NS.CommunityFlare_Process_Queues_Commands(event, sender, command, subco
 					guid = UnitGUID("player")
 				end
 
-				-- get length of k
-				local length = strlen(k)
+				-- get length of guid
+				guid = strformat("%s,%d", guid, v.numMembers)
+				local length = strlen(guid)
 				local textlength = strlen(text)
 				if ((length + textlength + 1) > 235) then
 					-- insert line
 					tinsert(lines, text)
-						-- reset text
-					text = strformat("%s", text, guid)
+
+					-- reset text
+					text = strformat("%s", guid)
 				else
 					-- no text?
 					if (text == "") then
@@ -444,8 +581,21 @@ function NS.CommunityFlare_Process_Queues_Commands(event, sender, command, subco
 				timer = timer + 0.1
 			end
 		end
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- no queues?
 		if (result == "none") then
 			-- no queues found
@@ -455,8 +605,7 @@ function NS.CommunityFlare_Process_Queues_Commands(event, sender, command, subco
 			local count = 0
 			local partyGUIDs = {strsplit(";", result)}
 			for k,v in ipairs(partyGUIDs) do
-				-- local queue?
-				local groupGUID = v
+				local groupGUID, numMembers = strsplit(",", v)
 				if (v:find("Player")) then
 					-- attempt to find group for player
 					groupGUID = SocialQueueGetGroupForPlayer(v)
@@ -465,31 +614,37 @@ function NS.CommunityFlare_Process_Queues_Commands(event, sender, command, subco
 				-- has group guid?
 				if (groupGUID) then
 					-- get queue info
-					local leaderName = nil
-					local leaderRealm = nil
 					local canJoin, numQueues, _, _, _, isSoloQueueParty, _, leaderGUID = SocialQueueGetGroupInfo(groupGUID)
 					if (leaderGUID) then
-						-- get leader name / realm
-						leaderName, leaderRealm = select(6, GetPlayerInfoByGUID(leaderGUID))
-
-						-- found leader name?
+						-- found leader?
+						local leaderName, leaderRealm = select(6, GetPlayerInfoByGUID(leaderGUID))
 						if (leaderName) then
 							-- no realm detected?
 							if (not leaderRealm or (leaderRealm == "")) then
 								leaderRealm = NS.CommFlare.CF.PlayerServerName
 							end
 
-							-- get members / queues
-							local members = SocialQueueGetGroupMembers(groupGUID)
+							-- not found member count?
+							if (not numMembers) then
+								-- get member count
+								local members = SocialQueueGetGroupMembers(groupGUID)
+								numMembers = #members
+								if (not numMembers) then
+									-- at least 1
+									numMembers = 1
+								end
+							end
+
+							-- still has queues?
 							local queues = SocialQueueGetGroupQueues(groupGUID)
-							if (members and (#members > 0) and queues) then
+							if (queues and (#queues > 0)) then
 								-- process all queues
 								for k2,v2 in ipairs(queues) do
 									-- has queueData?
 									if (v2.queueData and v2.queueData.mapName) then
 										-- display queue info
 										print(strformat(L["%s: %s has queue for %s-%s for %s with %d/5 members."],
-											NS.CommunityFlare_Title, sender, leaderName, leaderRealm, v2.queueData.mapName, #members))
+											NS.CommunityFlare_Title, sender, leaderName, leaderRealm, v2.queueData.mapName, numMembers))
 
 										-- increase
 										count = count + 1
@@ -525,8 +680,21 @@ function NS.CommunityFlare_Process_Version_Commands(event, sender, command, subc
 	if (subcommand == "check") then
 		-- send version info
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Version@Status@%s,%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build))
+
+		-- log command
+		NS.CommunityFlare_Log_Command(event, sender, command)
 	-- status?
 	elseif ((subcommand == "status") and result) then
+		-- Battle.NET?
+		if (type(sender) == "number") then
+			-- get from battle net
+			sender = NS.CommunityFlare_GetBNetFriendName(sender)
+		-- no realm name?
+		elseif (not strmatch(sender, "-")) then
+			-- add realm name
+			sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
 		-- display version info
 		local version, build = strsplit(",", result)
 		print(strformat(L["%s: %s has version %s (%s)"], NS.CommunityFlare_Title, sender, version, build))
@@ -540,6 +708,9 @@ end
 function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 	-- no shared community?
 	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+		-- log command from non shared community sender
+		NS.CommunityFlare_Log_Command(event, sender, strformat("Non Shared: %s", text))
+
 		-- finished
 		return true
 	end
@@ -567,6 +738,10 @@ function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 			if (command == "battleground") then
 				-- process battleground commands
 				NS.CommunityFlare_Process_Battleground_Commands(event, sender, command, subcommand, args[4])
+			-- deserter?
+			elseif (command == "deserter") then
+				-- process mercenary commands
+				NS.CommunityFlare_Process_Deserter_Commands(event, sender, command, subcommand, args[4])
 			-- map?
 			elseif (command == "map") then
 				-- process map commands
