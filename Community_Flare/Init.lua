@@ -13,6 +13,7 @@ local _G                                        = _G
 local BNGetFriendAccountInfo                    = _G.C_BattleNet.GetFriendAccountInfo
 local BNGetFriendIndex                          = _G.BNGetFriendIndex
 local BNGetNumFriends                           = _G.BNGetNumFriends
+local BNSendGameData                            = _G.BNSendGameData
 local BNSendWhisper                             = _G.BNSendWhisper
 local Chat_GetCommunitiesChannel                = _G.Chat_GetCommunitiesChannel
 local Chat_GetCommunitiesChannelName            = _G.Chat_GetCommunitiesChannelName
@@ -326,7 +327,7 @@ function NS.CommunityFlare_SaveSession()
 	end
 end
 
--- send to party, whisper, or bnet message
+-- send to party, whisper, or Battle.NET message
 function NS.CommunityFlare_SendMessage(sender, msg)
 	-- party?
 	if (not sender) then
@@ -343,12 +344,12 @@ function NS.CommunityFlare_SendMessage(sender, msg)
 			SendChatMessage(msg, "WHISPER", nil, sender)
 		end
 	elseif (type(sender) == "number") then
-		-- send to battle net whisper
+		-- send to Battle.NET whisper
 		BNSendWhisper(sender, msg)
 	end
 end
 
--- get battle net character
+-- get Battle.NET character
 function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
 	-- not number?
 	if (type(bnSenderID) ~= "number") then
@@ -356,10 +357,10 @@ function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
 		return nil
 	end
 
-	-- get bnet friend index
+	-- get Battle.NET friend index
 	local index = BNGetFriendIndex(bnSenderID)
 	if (index ~= nil) then
-		-- process all bnet accounts logged in
+		-- process all Battle.NET accounts logged in
 		local numGameAccounts = BattleNetGetFriendNumGameAccounts(index)
 		for i=1, numGameAccounts do
 			-- check if account has player guid online
@@ -375,7 +376,7 @@ function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
 	return nil
 end
 
--- get battle net presenceID by name-server
+-- get Battle.NET presenceID by name-server
 function NS.CommunityFlare_GetBNetPresenceIDByName(player)
 	-- split name / realm
 	local name, realm = strsplit("-", player)
@@ -398,6 +399,32 @@ function NS.CommunityFlare_GetBNetPresenceIDByName(player)
 
 	-- failed
 	return nil
+end
+
+-- send Battle.NET data
+function NS.CommunityFlare_BNSendData(player, msg)
+	-- string?
+	local presenceID = nil
+	if (type(player) == "string") then
+		-- realm not found?
+		if (not strmatch(player, "-")) then
+			-- add realm name
+			player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
+		-- get presenceID
+		presenceID = NS.CommunityFlare_GetBNetPresenceIDByName(player)
+	-- number?
+	elseif (type(player) == "number") then
+		-- this is presenceID
+		presenceID = player
+	end
+
+	-- found presenceID?
+	if (presenceID) then
+		-- send data
+		BNSendGameData(presenceID, ADDON_NAME, msg)
+	end
 end
 
 -- readd community chat window

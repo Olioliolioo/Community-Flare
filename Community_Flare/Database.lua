@@ -981,6 +981,12 @@ function NS.CommunityFlare_Refresh_Club_Members()
 		NS.db.profile.communityRefreshed = time()
 	end
 
+	-- match log list not setup?
+	if (not NS.db.global.matchLogList) then
+		-- initialize
+		NS.db.global.matchLogList = {}
+	end
+
 	-- purge older
 	local timestamp = time()
 	for k,v in pairs(NS.db.global.matchLogList) do

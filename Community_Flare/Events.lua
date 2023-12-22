@@ -73,6 +73,7 @@ local next                                      = _G.next
 local pairs                                     = _G.pairs
 local print                                     = _G.print
 local time                                      = _G.time
+local tostring                                  = _G.tostring
 local strfind                                   = _G.string.find
 local strformat                                 = _G.string.format
 local strgsub                                   = _G.string.gsub
@@ -139,6 +140,14 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 		if (status == "confirm") then
 			-- has queue popped?
 			if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped > 0)) then
+				-- get count
+				local count = NS.CommunityFlare_GetPartyCount()
+				local player = NS.CommunityFlare_GetPlayerName("full")
+				if (NS.CommFlare.CF.CurrentPopped["count"]) then
+					-- use popped count
+					count = NS.CommFlare.CF.CurrentPopped["count"]
+				end
+
 				-- accepted queue?
 				local text = ""
 				if (acceptFlag == true) then
@@ -154,6 +163,9 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					-- save stuff
 					NS.CommFlare.CF.LeftTime = 0
 					NS.CommFlare.CF.EnteredTime = time()
+
+					-- update community
+					NS.CommunityFlare_BNSendData(player, strformat("E:%d:%d", NS.CommFlare.CF.EnteredTime, count))
 				else
 					-- mercenary?
 					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
@@ -173,6 +185,9 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					-- reset stuff
 					NS.CommFlare.CF.LeftTime = time()
 					NS.CommFlare.CF.EnteredTime = 0
+
+					-- update community
+					NS.CommunityFlare_BNSendData(player, strformat("L:%d:%d", NS.CommFlare.CF.LeftTime, count))
 
 					-- clear after 30 seconds
 					TimerAfter(30, function()
@@ -504,6 +519,15 @@ end
 -- process battle net message addon
 function NS.CommFlare:BN_CHAT_MSG_ADDON(msg, ...)
 	local prefix, text, channel, senderID = ...
+
+	-- debug enabled?
+	if (NS.db.profile.printDebugInfo == true) then
+		-- display info
+		--print("prefix: ", prefix)
+		--print("senderID: ", senderID)
+		--print("channel: ", channel)
+		--print("text: ", text)
+	end
 end
 
 -- process chat battle net whisper
@@ -1387,6 +1411,7 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		-- load / initialize stuff
 		NS.db.global = NS.db.global or {}
 		NS.db.global.members = NS.db.global.members or {}
+		NS.db.global.matchLogList = NS.db.global.matchLogList or {}
 		NS.db.profile.communityList = NS.db.profile.communityList or {}
 
 		-- remove unused stuff
