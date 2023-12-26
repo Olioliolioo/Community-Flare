@@ -142,7 +142,6 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 			if (NS.CommFlare.CF.LocalQueues[index] and NS.CommFlare.CF.LocalQueues[index].popped and (NS.CommFlare.CF.LocalQueues[index].popped > 0)) then
 				-- get count
 				local count = NS.CommunityFlare_GetPartyCount()
-				local player = NS.CommunityFlare_GetPlayerName("full")
 				if (NS.CommFlare.CF.CurrentPopped["count"]) then
 					-- use popped count
 					count = NS.CommFlare.CF.CurrentPopped["count"]
@@ -164,8 +163,8 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					NS.CommFlare.CF.LeftTime = 0
 					NS.CommFlare.CF.EnteredTime = time()
 
-					-- update community
-					NS.CommunityFlare_BNSendData(player, strformat("E:%d:%d", NS.CommFlare.CF.EnteredTime, count))
+					-- push data
+					NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Entered:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.EnteredTime, count))
 				else
 					-- mercenary?
 					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
@@ -186,8 +185,8 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					NS.CommFlare.CF.LeftTime = time()
 					NS.CommFlare.CF.EnteredTime = 0
 
-					-- update community
-					NS.CommunityFlare_BNSendData(player, strformat("L:%d:%d", NS.CommFlare.CF.LeftTime, count))
+					-- push data
+					NS.CommunityFlare_BNPushData(strformat("%s:%s:%s:Queue:Left:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.LeftTime, count))
 
 					-- clear after 30 seconds
 					TimerAfter(30, function()
@@ -505,28 +504,18 @@ function NS.CommFlare:ADDON_LOADED(msg, ...)
 
 	-- Blizzard_PVPUI?
 	if (addOnName == "Blizzard_PVPUI") then
+		-- enforce pvp roles
+		NS.CommunityFlare_Enforce_PVP_Roles()
+
 		-- hook queue button mouse over
 		HonorFrameQueueButton:HookScript("OnEnter", NS.CommunityFlare_HonorFrameQueueButton_OnEnter)
+	-- Blizzard_Communities?
 	elseif (addOnName == "Blizzard_Communities") then
 		-- hooks for blocking communities window inside a battleground
 		NS.CommFlare.CF.AllowCommunitiesFrame = false
 		GuildMicroButton:HookScript("OnMouseDown", NS.CommunityFlare_GuildMicroButton_OnMouseDown)
 		CommunitiesFrame:HookScript("OnShow", NS.CommunityFlare_CommunitiesFrame_OnShow)
 		CommunitiesFrame:HookScript("OnHide", NS.CommunityFlare_CommunitiesFrame_OnHide)
-	end
-end
-
--- process battle net message addon
-function NS.CommFlare:BN_CHAT_MSG_ADDON(msg, ...)
-	local prefix, text, channel, senderID = ...
-
-	-- debug enabled?
-	if (NS.db.profile.printDebugInfo == true) then
-		-- display info
-		--print("prefix: ", prefix)
-		--print("senderID: ", senderID)
-		--print("channel: ", channel)
-		--print("text: ", text)
 	end
 end
 
@@ -1323,6 +1312,9 @@ end
 function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 	local sender, _, _, _, _, _, guid, questSessionActive = ...
 
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+
 	-- verify player does not have deserter debuff
 	NS.CommunityFlare_CheckForAura("player", "HARMFUL", L["Deserter"])
 	if (NS.CommFlare.CF.HasAura == false) then
@@ -1346,6 +1338,24 @@ function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 		if (NS.CommFlare.CF.AutoInvite == true) then
 			-- lfg invite popup shown?
 			if (LFGInvitePopup:IsShown()) then
+				-- force tank?
+				if (NS.db.profile.forceTank == true) then
+					-- click tank button
+					LFGInvitePopupRoleButtonTank:Click()
+				end
+
+				-- force healer?
+				if (NS.db.profile.forceHealer == true) then
+					-- click healer button
+					LFGInvitePopupRoleButtonHealer:Click()
+				end
+
+				-- force healer?
+				if (NS.db.profile.forceDPS == true) then
+					-- click dps button
+					LFGInvitePopupRoleButtonDPS:Click()
+				end
+
 				-- click accept button
 				LFGInvitePopupAcceptButton:Click()
 			-- static popup shown?
@@ -1435,6 +1445,9 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		-- process queue stuff
 		NS.CommunityFlare_SetupHooks()
 
+		-- enforce pvp roles
+		NS.CommunityFlare_Enforce_PVP_Roles()
+
 		-- initialize login?
 		if (isInitialLogin == true) then
 			-- not reloaded
@@ -1484,6 +1497,9 @@ end
 
 -- process player logout
 function NS.CommFlare:PLAYER_LOGOUT(msg)
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+
 	-- save session variables
 	NS.CommunityFlare_SaveSession()
 end
@@ -1531,6 +1547,10 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		NS.CommunityFlare_Update_Battleground_Stuff(true)
 		NS.CommunityFlare_Update_Member_Statistics("completed")
 		NS.CommunityFlare_Match_Started_Log_Roster()
+
+		-- push data
+		local timestamp = time()
+		NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Finished:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, NS.CommFlare.CF.MapName, timestamp, NS.CommFlare.CF.CommCount))
 	end
 
 	-- report to anyone?
@@ -2027,7 +2047,6 @@ end
 function NS.CommFlare:OnEnable()
 	-- register events
 	self:RegisterEvent("ADDON_LOADED")
-	self:RegisterEvent("BN_CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_BN_WHISPER")
 	self:RegisterEvent("CHAT_MSG_PARTY")
 	self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -2078,7 +2097,6 @@ end
 function NS.CommFlare:OnDisable()
 	-- unregister events
 	self:UnregisterEvent("ADDON_LOADED")
-	self:UnregisterEvent("BN_CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_BN_WHISPER")
 	self:UnregisterEvent("CHAT_MSG_PARTY")
 	self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -2196,7 +2214,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 		-- rebuild leaders
 		NS.CommunityFlare_RebuildCommunityLeaders()
 
-		-- display community leaders
+		-- count community leaders
 		local count = 0
 		print(strformat(L["%s: Listing Community Leaders"], NS.CommunityFlare_Title))
 		for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
@@ -2206,6 +2224,8 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 			-- next
 			count = count + 1
 		end
+
+		-- display results
 		print(strformat(L["%s: %d Community Leaders found."], NS.CommunityFlare_Title, count))
 	elseif (lower == "options") then
 		-- open options to Community Flare

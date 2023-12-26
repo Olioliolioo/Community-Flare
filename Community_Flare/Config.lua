@@ -10,10 +10,13 @@ end
 
 -- localize stuff
 local _G                                        = _G
+local UnitGetAvailableRoles                     = _G.UnitGetAvailableRoles
 local ClubGetSubscribedClubs                    = _G.C_Club.GetSubscribedClubs
 local ipairs                                    = _G.ipairs
+local next                                      = _G.next
 local print                                     = _G.print
 local strformat                                 = _G.string.format
+local tinsert                                   = _G.table.insert
 
 -- setup main community list
 function NS.CommunityFlare_Setup_Main_Community_List(info)
@@ -168,6 +171,7 @@ function NS.CommunityFlare_Other_Community_Get_Item(info, key)
 	if (info[#info] == "communityList") then
 		-- not initialized?
 		if (not NS.db.profile.communityList) then
+			-- initialize
 			NS.db.profile.communityList = {}
 		end
 
@@ -188,6 +192,7 @@ function NS.CommunityFlare_Other_Community_Set_Item(info, key, value)
 	if (info[#info] == "communityList") then
 		-- not initialized?
 		if (not NS.db.profile.communityList) then
+			-- initialize
 			NS.db.profile.communityList = {}
 		end
 
@@ -242,6 +247,7 @@ function NS.CommunityFlare_Community_List_Get_Item(info, key)
 	if (info[#info] == "communityLogList") then
 		-- not initialized?
 		if (not NS.db.profile.communityLogList) then
+			-- initialize
 			NS.db.profile.communityLogList = {}
 		end
 
@@ -262,6 +268,7 @@ function NS.CommunityFlare_Community_List_Set_Item(info, key, value)
 	if (info[#info] == "communityLogList") then
 		-- not initialized?
 		if (not NS.db.profile.communityLogList) then
+			-- initialize
 			NS.db.profile.communityLogList = {}
 		end
 
@@ -299,6 +306,86 @@ function NS.CommunityFlare_Set_ReportID(info, value)
 		-- readd community chat window
 		NS.CommunityFlare_ReaddCommunityChatWindow(NS.db.profile.communityReportID, 1)
 	end
+end
+
+-- is tank role available?
+function NS.CommunityFlare_Check_Tank_Available()
+	-- get available roles
+	local hasTank, hasHealer, hasDPS = UnitGetAvailableRoles("player")
+	if (hasTank == true) then
+		-- enabled
+		return false
+	else
+		-- disabled
+		return true
+	end
+end
+
+-- get force tank item
+function NS.CommunityFlare_Get_Force_Tank_Item(info)
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+
+	-- return value
+	return NS.db.profile.forceTank
+end
+
+-- set force tank item
+function NS.CommunityFlare_Set_Force_Tank_Item(info, value)
+	-- set value
+	NS.db.profile.forceTank = value
+
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+end
+
+-- is tank role available?
+function NS.CommunityFlare_Check_Healer_Available()
+	-- get available roles
+	local hasTank, hasHealer, hasDPS = UnitGetAvailableRoles("player")
+	if (hasHealer == true) then
+		-- enabled
+		return false
+	else
+		-- disabled
+		return true
+	end
+end
+
+-- get force healer item
+function NS.CommunityFlare_Get_Force_Healer_Item(info)
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+
+	-- return value
+	return NS.db.profile.forceHealer
+end
+
+-- set force healer item
+function NS.CommunityFlare_Set_Force_Healer_Item(info, value)
+	-- set value
+	NS.db.profile.forceHealer = value
+
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+end
+
+-- get force dps item
+function NS.CommunityFlare_Get_Force_DPS_Item(info)
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
+
+	-- return value
+	return NS.db.profile.forceDPS
+end
+
+-- set force dps item
+function NS.CommunityFlare_Set_Force_DPS_Item(info, value)
+	-- set value
+	NS.db.profile.forceDPS = value
+
+	-- enforce pvp roles
+	NS.CommunityFlare_Enforce_PVP_Roles()
 end
 
 -- setup total database members
@@ -420,6 +507,9 @@ NS.defaults = {
 		communityReporter = true,
 		debugMode = false,
 		displayPoppedGroups = false,
+		forceDPS = false,
+		forceHealer = false,
+		forceTank = false,
 		partyLeaderNotify = 2,
 		popupQueueWindow = false,
 		printDebugInfo = false,
@@ -530,7 +620,7 @@ NS.options = {
 					get = function(info) return NS.db.profile.communityAutoInvite end,
 					set = function(info, value) NS.db.profile.communityAutoInvite = value end,
 				},
-			}
+			},
 		},
 		queue = {
 			type = "group",
@@ -583,9 +673,18 @@ NS.options = {
 					get = function(info) return NS.db.profile.popupQueueWindow end,
 					set = function(info, value) NS.db.profile.popupQueueWindow = value end,
 				},
-				communityReporter = {
+				warningQueuePaused = {
 					type = "toggle",
 					order = 5,
+					name = L["Warn if/when queues become paused?"],
+					desc = L["This will provide a warning message or popup message for Group Leaders, if/when their queue becomes paused."],
+					width = "full",
+					get = function(info) return NS.db.profile.warningQueuePaused end,
+					set = function(info, value) NS.db.profile.warningQueuePaused = value end,
+				},
+				communityReporter = {
+					type = "toggle",
+					order = 6,
 					name = L["Report queues to main community? (Requires community channel to have /# assigned.)"],
 					desc = L["This will provide a quick popup message for you to send your queue status to the Community chat."],
 					width = "full",
@@ -594,7 +693,7 @@ NS.options = {
 				},
 				communityReportID = {
 					type = "select",
-					order = 6,
+					order = 7,
 					name = L["Community to report to?"],
 					desc = L["Choose the community that you want to report queues to."],
 					values = NS.CommunityFlare_Setup_Report_Community_List,
@@ -604,7 +703,7 @@ NS.options = {
 				},
 				uninvitePlayersAFK = {
 					type = "select",
-					order = 7,
+					order = 8,
 					name = L["Uninvite any players that are AFK?"],
 					desc = L["Pops up a box to uninvite any users that are AFK at the time of queuing."],
 					values = {
@@ -617,14 +716,39 @@ NS.options = {
 					get = function(info) return NS.db.profile.uninvitePlayersAFK end,
 					set = function(info, value) NS.db.profile.uninvitePlayersAFK = value end,
 				},
-				warningQueuePaused = {
-					type = "toggle",
-					order = 8,
-					name = L["Warn if/when queues become paused?"],
-					desc = L["This will provide a warning message or popup message for Group Leaders, if/when their queue becomes paused."],
-					width = "full",
-					get = function(info) return NS.db.profile.warningQueuePaused end,
-					set = function(info, value) NS.db.profile.warningQueuePaused = value end,
+				forcedRoles = {
+					type = "group",
+					order = 9,
+					name = "Force PVP Role?",
+					inline = true,
+					args = {
+						forceTank = {
+							type = "toggle",
+							order = 1,
+							name = "Tank",
+							desc = "This will always enable the Tank role for PVP Queues.",
+							disabled = NS.CommunityFlare_Check_Tank_Available,
+							get = NS.CommunityFlare_Get_Force_Tank_Item,
+							set = NS.CommunityFlare_Set_Force_Tank_Item,
+						},
+						forceHealer = {
+							type = "toggle",
+							order = 2,
+							name = "Healer",
+							desc = "This will always enable the Healer role for PVP Queues.",
+							disabled = NS.CommunityFlare_Check_Healer_Available,
+							get = NS.CommunityFlare_Get_Force_Healer_Item,
+							set = NS.CommunityFlare_Set_Force_Healer_Item,
+						},
+						forceDPS = {
+							type = "toggle",
+							order = 3,
+							name = "DPS",
+							desc = "This will always enable the DPS role for PVP Queues.",
+							get = NS.CommunityFlare_Get_Force_DPS_Item,
+							set = NS.CommunityFlare_Set_Force_DPS_Item,
+						},
+					},
 				},
 			},
 		},
@@ -646,7 +770,7 @@ NS.options = {
 					get = function(info) return NS.db.profile.partyLeaderNotify end,
 					set = function(info, value) NS.db.profile.partyLeaderNotify = value end,
 				},
-			}
+			},
 		},
 		battleground = {
 			type = "group",
@@ -768,7 +892,7 @@ NS.options = {
 					get = function(info) return NS.db.profile.printDebugInfo end,
 					set = function(info, value) NS.db.profile.printDebugInfo = value end,
 				},
-			}
+			},
 		},
 	},
 }

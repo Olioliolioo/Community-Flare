@@ -936,6 +936,9 @@ end
 
 -- refresh club members
 function NS.CommunityFlare_Refresh_Club_Members()
+	-- update invisible status
+	NS.CommFlare.CF.Invisble = NS.CommunityFlare_IsInvisible()
+
 	-- process club members
 	local status = NS.CommunityFlare_Process_Club_Members()
 	if (status == false) then
@@ -981,7 +984,7 @@ function NS.CommunityFlare_Refresh_Club_Members()
 		NS.db.profile.communityRefreshed = time()
 	end
 
-	-- match log list not setup?
+	-- not initialized?
 	if (not NS.db.global.matchLogList) then
 		-- initialize
 		NS.db.global.matchLogList = {}
@@ -990,13 +993,13 @@ function NS.CommunityFlare_Refresh_Club_Members()
 	-- purge older
 	local timestamp = time()
 	for k,v in pairs(NS.db.global.matchLogList) do
-		-- old format?
-		if ((type(k) ~= "number") or (k < 100000)) then
+		-- older found?
+		if (not v.timestamp or (k > 1000000)) then
 			-- delete
 			NS.db.global.matchLogList[k] = nil
 		else
 			-- older than 7 days?
-			local older = k + (7 * 86400)
+			local older = v.timestamp + (7 * 86400)
 			if (timestamp > older) then
 				-- delete
 				NS.db.global.matchLogList[k] = nil

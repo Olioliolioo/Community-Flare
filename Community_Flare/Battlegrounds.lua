@@ -35,6 +35,7 @@ local PromoteToLeader                           = _G.PromoteToLeader
 local RaidWarningFrame_OnEvent                  = _G.RaidWarningFrame_OnEvent
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local UnitFactionGroup                          = _G.UnitFactionGroup
+local UnitGUID                                  = _G.UnitGUID
 local UnitInRaid                                = _G.UnitInRaid
 local UnitName                                  = _G.UnitName
 local AreaPoiInfoGetAreaPOIInfo                 = _G.C_AreaPoiInfo.GetAreaPOIInfo
@@ -951,6 +952,42 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 	end
 end
 
+-- log match list
+function NS.CommunityFlare_Log_Match_List(list)
+	-- not initialized?
+	if (not NS.db.global.matchLogList) then
+		-- initialize
+		NS.db.global.matchLogList = {}
+	end
+
+	-- purge older
+	local timestamp = time()
+	for k,v in pairs(NS.db.global.matchLogList) do
+		-- older found?
+		if (not v.timestamp or (k > 1000000)) then
+			-- delete
+			NS.db.global.matchLogList[k] = nil
+		else
+			-- older than 7 days?
+			local older = v.timestamp + (7 * 86400)
+			if (timestamp > older) then
+				-- delete
+				NS.db.global.matchLogList[k] = nil
+			end
+		end
+	end
+
+	-- build entry
+	local player = NS.CommunityFlare_GetPlayerName("full")
+	local entry = {
+		["timestamp"] = timestamp,
+		["message"] = strformat(L["Date: %s; MapName: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapName, player, list),
+	}
+
+	-- insert
+	tinsert(NS.db.global.matchLogList, entry)
+end
+
 -- match started, log roster
 function NS.CommunityFlare_Match_Started_Log_Roster()
 	-- already logged?
@@ -975,24 +1012,10 @@ function NS.CommunityFlare_Match_Started_Log_Roster()
 
 		-- found log list?
 		if (list ~= nil) then
-			-- match log list not setup?
-			if (not NS.db.global.matchLogList) then
-				-- initialize
-				NS.db.global.matchLogList = {}
-			end
-
-			-- remove profile match log list
-			if (NS.db.profile.matchLogList) then
-				-- remove
-				NS.db.profile.matchLogList = nil
-			end
-
-			-- no date?
+			-- has proper date?
 			if (NS.CommFlare.CF.MatchStartDate and (NS.CommFlare.CF.MatchStartDate ~= "")) then
-				-- save match log
-				local timestamp = time()
-				local player = NS.CommunityFlare_GetPlayerName("full")
-				NS.db.global.matchLogList[timestamp] = strformat(L["Date: %s; MapName: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapName, player, list)
+				-- log match list
+				NS.CommunityFlare_Log_Match_List(list)
 
 				-- logged
 				NS.CommFlare.CF.MatchStartLogged = true
@@ -1533,6 +1556,11 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				NS.CommFlare.CF.EnteredTime = 0
 				NS.CommFlare.CF.CurrentPopped = {}
 
+				-- push data
+				local timestamp = time()
+				local count = NS.CommunityFlare_GetPartyCount()
+				NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Queued:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+
 				-- delay some
 				TimerAfter(0.5, function()
 					-- community reporter enabled?
@@ -1603,6 +1631,17 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				-- update / process popped groups
 				NS.CommunityFlare_Update_Group("local")
 				NS.CommunityFlare_Process_Popped("local")
+
+				-- get count
+				local count = NS.CommunityFlare_GetPartyCount()
+				if (NS.CommFlare.CF.CurrentPopped["count"]) then
+					-- use popped count
+					count = NS.CommFlare.CF.CurrentPopped["count"]
+				end
+
+				-- push data
+				local timestamp = time()
+				NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Popped:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
 
 				-- port expiration not expired?
 				NS.CommFlare.CF.Expiration = GetBattlefieldPortExpiration(index)
@@ -1675,6 +1714,17 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					NS.CommFlare.CF.LocalData.NumHealers = 0
 					NS.CommFlare.CF.LocalData.NumTanks = 0
 
+					-- get count
+					local count = NS.CommunityFlare_GetPartyCount()
+					if (NS.CommFlare.CF.CurrentPopped["count"]) then
+						-- use popped count
+						count = NS.CommFlare.CF.CurrentPopped["count"]
+					end
+
+					-- push data
+					local timestamp = time()
+					NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Dropped:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+
 					-- community reporter enabled?
 					if (NS.db.profile.communityReporter == true) then
 						-- are you group leader?
@@ -1705,6 +1755,17 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 						-- finalize text
 						text = strformat(L["Missed Queue For Popped %s!"], mapName)
 					end
+
+					-- get count
+					local count = NS.CommunityFlare_GetPartyCount()
+					if (NS.CommFlare.CF.CurrentPopped["count"]) then
+						-- use popped count
+						count = NS.CommFlare.CF.CurrentPopped["count"]
+					end
+
+					-- push data
+					local timestamp = time()
+					NS.CommunityFlare_BNPushData(strformat("%s:%s:Queue:Missed:%s:%d:%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
 
 					-- are you in a party?
 					if (IsInGroup() and not IsInRaid()) then

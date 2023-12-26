@@ -46,7 +46,7 @@ local tinsert                                   = _G.table.insert
 
 -- log command
 function NS.CommunityFlare_Log_Command(event, sender, text)
-	-- table initialized?
+	-- not initialized?
 	if (not NS.db.global.commandsLog) then
 		-- initialize
 		NS.db.global.commandsLog = {}
@@ -55,17 +55,39 @@ function NS.CommunityFlare_Log_Command(event, sender, text)
 	-- purge older
 	local timestamp = time()
 	for k,v in pairs(NS.db.global.commandsLog) do
-		-- older than 7 days?
-		local older = k + (7 * 86400)
-		if (timestamp > older) then
+		-- older found?
+		if (not v.timestamp or (k > 1000000)) then
 			-- delete
 			NS.db.global.commandsLog[k] = nil
+		else
+			-- older than 7 days?
+			local older = v.timestamp + (7 * 86400)
+			if (timestamp > older) then
+				-- delete
+				NS.db.global.commandsLog[k] = nil
+			end
 		end
 	end
 
-	-- log it
+	-- Battle.NET?
+	if (type(sender) == "number") then
+		-- get from battle net
+		sender = NS.CommunityFlare_GetBNetFriendName(sender)
+	-- no realm name?
+	elseif (not strmatch(sender, "-")) then
+		-- add realm name
+		sender = sender .. "-" .. NS.CommFlare.CF.PlayerServerName
+	end
+
+	-- build entry
 	local datestamp = date()
-	NS.db.global.commandsLog[timestamp] = strformat("%s: %s = %s at %s", event, sender, text, datestamp)
+	local entry = {
+		["timestamp"] = timestamp,
+		["message"] = strformat("%s: %s = %s at %s", event, sender, text, datestamp),
+	}
+
+	-- insert
+	tinsert(NS.db.global.commandsLog, entry)
 end
 
 -- process battleground commands
@@ -122,7 +144,7 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Battleground@Status@%s", text))
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Battleground")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -209,7 +231,7 @@ function NS.CommunityFlare_Process_Deserter_Commands(event, sender, command, sub
 		end
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Deserter")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -252,7 +274,7 @@ function NS.CommunityFlare_Process_Map_Commands(event, sender, command, subcomma
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Map@Status@%d,%s", mapID, info.name))
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Map")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -295,7 +317,7 @@ function NS.CommunityFlare_Process_Mercenary_Commands(event, sender, command, su
 		end
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Mercenary")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -340,7 +362,7 @@ function NS.CommunityFlare_Process_Party_Commands(event, sender, command, subcom
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Party@Status@%s,%s,%d,%d", isRaid, isGroup, numGroupMembers, numSubgroupMembers))
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Party")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -466,7 +488,7 @@ function NS.CommunityFlare_Process_Pop_Commands(event, sender, command, subcomma
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Pop@Status@%s,%s,%s,%s,%s", action, popped, count, queueMapName, mercenary))
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Pop")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -583,7 +605,7 @@ function NS.CommunityFlare_Process_Queues_Commands(event, sender, command, subco
 		end
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Queues")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -682,7 +704,7 @@ function NS.CommunityFlare_Process_Version_Commands(event, sender, command, subc
 		NS.CommunityFlare_SendMessage(sender, strformat("!CF@Version@Status@%s,%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build))
 
 		-- log command
-		NS.CommunityFlare_Log_Command(event, sender, command)
+		NS.CommunityFlare_Log_Command(event, sender, "Version")
 	-- status?
 	elseif ((subcommand == "status") and result) then
 		-- Battle.NET?
@@ -715,7 +737,7 @@ function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 		return true
 	end
 
-	-- table initialized?
+	-- not initialized?
 	if (not NS.CommFlare.CF.InternalCommands[sender]) then
 		-- initialize
 		NS.CommFlare.CF.InternalCommands[sender] = {}

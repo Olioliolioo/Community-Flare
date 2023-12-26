@@ -29,6 +29,7 @@ local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local PromoteToLeader                           = _G.PromoteToLeader
 local SendChatMessage                           = _G.SendChatMessage
+local SetPVPRoles                               = _G.SetPVPRoles
 local StaticPopupDialogs                        = _G.StaticPopupDialogs
 local StaticPopup_Show                          = _G.StaticPopup_Show
 local UninviteUnit                              = _G.UninviteUnit
@@ -41,15 +42,18 @@ local UnitIsGroupLeader                         = _G.UnitIsGroupLeader
 local UnitName                                  = _G.UnitName
 local UnitRealmRelationship                     = _G.UnitRealmRelationship
 local AuraUtilForEachAura                       = _G.AuraUtil.ForEachAura
+local BattleNetGetAccountInfoByGUID             = _G.C_BattleNet.GetAccountInfoByGUID
 local BattleNetGetFriendAccountInfo             = _G.C_BattleNet.GetFriendAccountInfo
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
+local ClubGetClubMembers                        = _G.C_Club.GetClubMembers
+local ClubGetMemberInfo                         = _G.C_Club.GetMemberInfo
+local ClubGetSubscribedClubs                    = _G.C_Club.GetSubscribedClubs
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
 local TimerAfter                                = _G.C_Timer.After
 local pairs                                     = _G.pairs
 local time                                      = _G.time
-local tonumber                                  = _G.tonumber
 local type                                      = _G.type
 local mfloor                                    = _G.math.floor
 local strformat                                 = _G.string.format
@@ -257,6 +261,57 @@ function NS.CommunityFlare_ParseCommand(text)
 	return table
 end
 
+-- is player appearing offline?
+function NS.CommunityFlare_IsInvisible()
+	-- check Battle.NET account - has focus?
+	local accountInfo = BattleNetGetAccountInfoByGUID(UnitGUID("player"))
+	if (accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.hasFocus) then
+		-- has focus?
+		if (accountInfo.gameAccountInfo.hasFocus == true) then
+			-- visible
+			NS.CommFlare.CF.Invisble = false
+			return false
+		else
+			-- invisible
+			NS.CommFlare.CF.Invisble = true
+			return true
+		end
+	end
+
+	-- process all clubs
+	local player = NS.CommunityFlare_GetPlayerName("short")
+	local clubs = ClubGetSubscribedClubs()
+	for _,v in ipairs(clubs) do
+		-- community?
+		if (v.clubType == Enum.ClubType.Character) then
+			-- process members
+			local clubId = v.clubId
+			local members = ClubGetClubMembers(clubId)
+			for _,v2 in ipairs(members) do
+				local mi = ClubGetMemberInfo(clubId, v2)
+				if ((mi ~= nil) and (mi.name ~= nil)) then
+					-- found player?
+					if (mi.name == player) then
+						-- offline?
+						if (mi.presence == Enum.ClubMemberPresence.Offline) then
+							-- invisible
+							NS.CommFlare.CF.Invisble = true
+							return true
+						else
+							-- visible
+							NS.CommFlare.CF.Invisble = false
+							return false
+						end
+					end
+				end
+			end
+		end 
+	end
+
+	-- no communities? (assume invisible)
+	return true
+end
+
 -- promote player to party leader
 function NS.CommunityFlare_PromoteToPartyLeader(player)
 	-- is player full name in party?
@@ -349,84 +404,6 @@ function NS.CommunityFlare_SendMessage(sender, msg)
 	end
 end
 
--- get Battle.NET character
-function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
-	-- not number?
-	if (type(bnSenderID) ~= "number") then
-		-- failed
-		return nil
-	end
-
-	-- get Battle.NET friend index
-	local index = BNGetFriendIndex(bnSenderID)
-	if (index ~= nil) then
-		-- process all Battle.NET accounts logged in
-		local numGameAccounts = BattleNetGetFriendNumGameAccounts(index)
-		for i=1, numGameAccounts do
-			-- check if account has player guid online
-			local accountInfo = BattleNetGetFriendGameAccountInfo(index, i)
-			if (accountInfo.playerGuid) then
-				-- build full player-realm
-				return strformat("%s-%s", accountInfo.characterName, accountInfo.realmName)
-			end
-		end
-	end
-
-	-- failed
-	return nil
-end
-
--- get Battle.NET presenceID by name-server
-function NS.CommunityFlare_GetBNetPresenceIDByName(player)
-	-- split name / realm
-	local name, realm = strsplit("-", player)
-	if (not realm or (realm == "")) then
-		-- same realm name
-		realm = NS.CommFlare.CF.PlayerServerNam
-	end
-
-	-- process all friends
-	for i = 1, BNGetNumFriends() do
-		local accountInfo = BattleNetGetFriendAccountInfo(i)
-		if (accountInfo and accountInfo.gameAccountInfo and accountInfo.gameAccountInfo.playerGuid) then
-			-- matches name and realm?
-			if ((accountInfo.gameAccountInfo.characterName == name) and (accountInfo.gameAccountInfo.realmName == realm)) then
-				-- found
-				return i
-			end
-		end
-	end
-
-	-- failed
-	return nil
-end
-
--- send Battle.NET data
-function NS.CommunityFlare_BNSendData(player, msg)
-	-- string?
-	local presenceID = nil
-	if (type(player) == "string") then
-		-- realm not found?
-		if (not strmatch(player, "-")) then
-			-- add realm name
-			player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
-		end
-
-		-- get presenceID
-		presenceID = NS.CommunityFlare_GetBNetPresenceIDByName(player)
-	-- number?
-	elseif (type(player) == "number") then
-		-- this is presenceID
-		presenceID = player
-	end
-
-	-- found presenceID?
-	if (presenceID) then
-		-- send data
-		BNSendGameData(presenceID, ADDON_NAME, msg)
-	end
-end
-
 -- readd community chat window
 function NS.CommunityFlare_ReaddCommunityChatWindow(clubId, streamId)
 	-- remove channel
@@ -513,6 +490,36 @@ function NS.CommunityFlare_IsTank(spec)
 	return false
 end
 
+-- enforce pvp roles
+function NS.CommunityFlare_Enforce_PVP_Roles()
+	-- force tank role?
+	local isTank = false
+	if (NS.db.profile.forceTank == true) then
+		-- enable
+		isTank = true
+	end
+
+	-- force healer role?
+	local isHealer = false
+	if (NS.db.profile.forceHealer == true) then
+		-- enable
+		isHealer = true
+	end
+
+	-- force dps role?
+	local isDPS = false
+	if (NS.db.profile.forceDPS == true) then
+		-- enable
+		isDPS = true
+	end
+
+	-- any roles forced?
+	if ((isTank == true) or (isHealer == true) or (isDPS == true)) then
+		-- set pvp roles
+		SetPVPRoles(isTank, isHealer, isDPS)
+	end
+end
+
 -- get full player name
 function NS.CommunityFlare_GetFullName(player)
 	-- force name-realm format
@@ -552,6 +559,7 @@ end
 function NS.CommunityFlare_GetPartyLeader()
 	-- process all sub group members
 	for i=1, GetNumSubgroupMembers() do 
+		-- is group leader?
 		if (UnitIsGroupLeader("party" .. i)) then 
 			local name, realm = UnitName("party" .. i)
 			if (realm and (realm ~= "")) then
@@ -572,6 +580,7 @@ end
 function NS.CommunityFlare_GetPartyLeaderGUID()
 	-- process all sub group members
 	for i=1, GetNumSubgroupMembers() do 
+		-- is group leader?
 		if (UnitIsGroupLeader("party" .. i)) then
 			-- return guid
 			return UnitGUID("party" .. i)
@@ -580,6 +589,31 @@ function NS.CommunityFlare_GetPartyLeaderGUID()
 
 	-- solo atm
 	return UnitGUID("player")
+end
+
+-- get party members
+function NS.CommunityFlare_GetPartyMembers()
+	-- process all group members
+	local members = {}
+	for i=1, GetNumGroupMembers() do
+		-- get unit name
+		local unit = "party" .. i
+		local name, realm = UnitName(unit)
+		if (name and (name ~= "")) then
+			-- no realm name?
+			if (not realm or (realm == "")) then
+				-- get realm name
+				realm = NS.CommFlare.CF.PlayerServerName
+			end
+
+			-- add member
+			name = name .. "-" .. realm
+			members[name] = true
+		end
+	end
+
+	-- return members
+	return members
 end
 
 -- get party unit
@@ -592,6 +626,7 @@ function NS.CommunityFlare_GetPartyUnit(player)
 
 	-- process all group members
 	for i=1, GetNumGroupMembers() do
+		-- get unit name
 		local unit = "party" .. i
 		local name, realm = UnitName(unit)
 		if (name and (name ~= "")) then
@@ -604,6 +639,7 @@ function NS.CommunityFlare_GetPartyUnit(player)
 			-- full name matches?
 			name = name .. "-" .. realm
 			if (player == name) then
+				-- return unit
 				return unit
 			end
 		end
@@ -615,13 +651,13 @@ end
 
 -- get party count
 function NS.CommunityFlare_GetPartyCount()
-	-- get proper count
-	NS.CommFlare.CF.Count = 1
-	if (IsInGroup()) then
-		if (not IsInRaid()) then
-			-- update count
-			NS.CommFlare.CF.Count = GetNumGroupMembers()
-		end
+	-- get group members
+	NS.CommFlare.CF.Count = GetNumGroupMembers()
+
+	-- no members? (solo)
+	if (NS.CommFlare.CF.Count == 0) then
+		-- solo
+		NS.CommFlare.CF.Count = 1
 	end
 
 	-- return count
@@ -639,6 +675,12 @@ function NS.CommunityFlare_GetGroupCount()
 		end
 	end
 
+	-- no members? (solo)
+	if (NS.CommFlare.CF.Count == 0) then
+		-- solo
+		NS.CommFlare.CF.Count = 1
+	end
+
 	-- return x/5 count
 	return strformat("%d/5", NS.CommFlare.CF.Count)
 end
@@ -652,21 +694,33 @@ function NS.CommunityFlare_GetGroupMembers()
 		if (not IsInRaid()) then
 			-- process all group members
 			for i=1, GetNumGroupMembers() do
-				local name, realm = UnitName("party" .. i)
+				-- get unit name
+				local unit = "party" .. i
+				local name, realm = UnitName(unit)
+
+				-- no realm name?
+				if (not realm or (realm == "")) then
+					-- get realm name
+					realm = NS.CommFlare.CF.PlayerServerName
+				end
 
 				-- add party member
-				players[i] = {}
-				players[i].guid = UnitGUID("party" .. i)
-				players[i].name = name
-				players[i].realm = realm
+				players[i] = {
+					["guid"] = UnitGUID(unit),
+					["name"] = name,
+					["realm"] = realm,
+				}
 			end
 		end
 	else
 		-- add yourself
-		players[1] = {}
-		players[1].guid = UnitGUID("player")
-		players[1].player = NS.CommunityFlare_GetPlayerName("full")
+		players[1] = {
+			["guid"] = UnitGUID("player"),
+			["player"] = NS.CommunityFlare_GetPlayerName("full"),
+		}
 	end
+
+	-- return players
 	return players
 end
 
@@ -691,6 +745,128 @@ function NS.CommunityFlare_GetMemberCount()
 
 	-- success
 	return count
+end
+
+-- get Battle.NET character
+function NS.CommunityFlare_GetBNetFriendName(bnSenderID)
+	-- not number?
+	if (type(bnSenderID) ~= "number") then
+		-- failed
+		return nil
+	end
+
+	-- get Battle.NET friend index
+	local index = BNGetFriendIndex(bnSenderID)
+	if (index ~= nil) then
+		-- process all Battle.NET accounts logged in
+		local numGameAccounts = BattleNetGetFriendNumGameAccounts(index)
+		for i=1, numGameAccounts do
+			-- retail client?
+			local gameAccountInfo = BattleNetGetFriendGameAccountInfo(index, i)
+			if (gameAccountInfo and (gameAccountInfo.clientProgram == BNET_CLIENT_WOW) and (gameAccountInfo.wowProjectID == 1)) then
+				-- has character and realm names?
+				if (gameAccountInfo.characterName and gameAccountInfo.realmName) then
+					-- build full player-realm
+					return strformat("%s-%s", gameAccountInfo.characterName, gameAccountInfo.realmName)
+				end
+			end
+		end
+	end
+
+	-- failed
+	return nil
+end
+
+-- get Battle.NET presenceID by name-server
+function NS.CommunityFlare_GetBNetPresenceIDByName(player)
+	-- split name / realm
+	local name, realm = strsplit("-", player)
+	if (not realm or (realm == "")) then
+		-- same realm name
+		realm = NS.CommFlare.CF.PlayerServerNam
+	end
+
+	-- process all friends
+	for i=1, BNGetNumFriends() do
+		-- player online?
+		local accountInfo = BattleNetGetFriendAccountInfo(i)
+		if (accountInfo and accountInfo.gameAccountInfo) then
+			-- retail client?
+			local gameAccountInfo = accountInfo.gameAccountInfo
+			if (gameAccountInfo and (gameAccountInfo.clientProgram == BNET_CLIENT_WOW) and (gameAccountInfo.wowProjectID == 1)) then
+				-- has character and realm names?
+				if (gameAccountInfo.characterName and gameAccountInfo.realmName) then
+					-- matches name and realm?
+					if ((gameAccountInfo.characterName == name) and (gameAccountInfo.realmName == realm)) then
+						-- found
+						return i
+					end
+				end
+			end
+		end
+	end
+
+	-- failed
+	return nil
+end
+
+-- send Battle.NET data
+function NS.CommunityFlare_BNSendData(player, data)
+	-- string?
+	local presenceID = nil
+	if (type(player) == "string") then
+		-- realm not found?
+		if (not strmatch(player, "-")) then
+			-- add realm name
+			player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
+		-- get presenceID
+		presenceID = NS.CommunityFlare_GetBNetPresenceIDByName(player)
+	-- number?
+	elseif (type(player) == "number") then
+		-- this is presenceID
+		presenceID = player
+	end
+
+	-- found presenceID?
+	if (presenceID) then
+		-- send data
+		BNSendGameData(presenceID, "CommFlare", data)
+	end
+end
+
+-- push Battle.NET data
+function NS.CommunityFlare_BNPushData(data)
+	-- is player invisible?
+	local isInvisible = NS.CommunityFlare_IsInvisible()
+	if (isInvisible and (isInvisible == true)) then
+		-- finished
+		return
+	end
+
+	-- process all friends
+	local members = NS.CommunityFlare_GetPartyMembers()
+	for i=1, BNGetNumFriends() do
+		-- player online?
+		local accountInfo = BattleNetGetFriendAccountInfo(i)
+		if (accountInfo and accountInfo.gameAccountInfo) then
+			-- retail client?
+			local gameAccountInfo = accountInfo.gameAccountInfo
+			if (gameAccountInfo and (gameAccountInfo.clientProgram == BNET_CLIENT_WOW) and (gameAccountInfo.wowProjectID == 1)) then
+				-- has character and realm names?
+				if (gameAccountInfo.characterName and gameAccountInfo.realmName) then
+					-- not in party?
+					local player = strformat("%s-%s", gameAccountInfo.characterName, gameAccountInfo.realmName)
+					if (not members[player]) then
+						-- send data
+						local presenceID = gameAccountInfo.gameAccountID
+						NS.CommunityFlare_BNSendData(presenceID, data)
+					end
+				end
+			end
+		end
+	end
 end
 
 -- check if a unit has type aura active

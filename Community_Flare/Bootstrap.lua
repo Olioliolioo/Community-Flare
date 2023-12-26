@@ -55,6 +55,7 @@ NS.CommFlare.CF = {
 	DefaultVerified = false,
 	Disabled = false,
 	InitialLogin = false,
+	Invisible = false,
 	HasAura = false,
 	Popped = false,
 	Reloaded = false,

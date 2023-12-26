@@ -27,7 +27,7 @@ function NS.CommunityFlare_History_Get(player)
 		return nil
 	end
 
-	-- history not initialized?
+	-- not initialized?
 	if (not NS.db.global.history) then
 		-- initialize
 		NS.db.global.history = {}
@@ -57,7 +57,7 @@ function NS.CommunityFlare_History_Update_Completed_Matches(player)
 		return false
 	end
 
-	-- history not initialized?
+	-- not initialized?
 	if (not NS.db.global.history) then
 		-- initialize
 		NS.db.global.history = {}
@@ -94,7 +94,7 @@ function NS.CommunityFlare_History_Update_Grouped_Matches(player)
 		return false
 	end
 
-	-- history not initialized?
+	-- not initialized?
 	if (not NS.db.global.history) then
 		-- initialize
 		NS.db.global.history = {}
@@ -131,7 +131,7 @@ function NS.CommunityFlare_History_Update_Last_Grouped(player)
 		return false
 	end
 
-	-- history not initialized?
+	-- not initialized?
 	if (not NS.db.global.history) then
 		-- initialize
 		NS.db.global.history = {}
@@ -162,7 +162,7 @@ function NS.CommunityFlare_History_Update_Last_Seen(player)
 		return false
 	end
 
-	-- history not initialized?
+	-- not initialized?
 	if (not NS.db.global.history) then
 		-- initialize
 		NS.db.global.history = {}

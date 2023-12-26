@@ -20,6 +20,10 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.06 features:
+-New setting to force Tank/Healer/DPS specialization for PVP in Queue Options.
+--This setting forces a role if you are invited to a party that is already in queue!
+
 v1.05 features:
 -Match Logs are kept for previous 7 days only to avoid super large settings files.
 -/comf options will open the Community Flare options.
