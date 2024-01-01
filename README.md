@@ -20,6 +20,11 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.07 features:
+-New /comf deployed command to check if you still have people in community deployed in PVP.
+-New setting to allow Community Leaders list to only build from selected Communities.
+-Block game menu hotkeys inside PVP content reworked a bit with raw hooks.
+
 v1.06 features:
 -New setting to force Tank/Healer/DPS specialization for PVP in Queue Options.
 --This setting forces a role if you are invited to a party that is already in queue!
