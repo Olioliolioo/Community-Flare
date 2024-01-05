@@ -41,6 +41,7 @@ local UnitName                                  = _G.UnitName
 local AreaPoiInfoGetAreaPOIInfo                 = _G.C_AreaPoiInfo.GetAreaPOIInfo
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
+local SendAddonMessage                          = _G.C_ChatInfo.SendAddonMessage
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local MapGetMapInfo                             = _G.C_Map.GetMapInfo
 local PartyInfoIsPartyFull                      = _G.C_PartyInfo.IsPartyFull
@@ -843,14 +844,17 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			end
 		end
 
-		-- display results staggered
-		TimerAfter(timer, function()
-			-- display mercs count
-			print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercCount))
-		end)
+		-- should print?
+		if (isPrint == true) then
+			-- display results staggered
+			TimerAfter(timer, function()
+				-- display mercs count
+				print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercCount))
+			end)
 
-		-- next
-		timer = timer + 0.1
+			-- next
+			timer = timer + 0.1
+		end
 	end
 
 	-- has community players?
@@ -916,14 +920,17 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			end
 		end
 
-		-- display results staggered
-		TimerAfter(timer, function()
-			-- display community count
-			print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
-		end)
+		-- should print?
+		if (isPrint == true) then
+			-- display results staggered
+			TimerAfter(timer, function()
+				-- display community count
+				print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
+			end)
 
-		-- next
-		timer = timer + 0.1
+			-- next
+			timer = timer + 0.1
+		end
 	end
 end
 
@@ -1208,6 +1215,7 @@ function NS.CommunityFlare_Process_Status_Check(sender)
 			end
 
 			-- has match started yet?
+			NS.CommFlare.CF.NeedAddonData = false
 			local duration = PvPGetActiveMatchDuration()
 			if (duration > 0) then
 				-- calculate time elapsed
@@ -1230,6 +1238,10 @@ function NS.CommunityFlare_Process_Status_Check(sender)
 						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- isle of conquest?
 				elseif (NS.CommFlare.CF.MapID == 169) then
+					-- issue capping gate request command
+					NS.CommFlare.CF.NeedAddonData = true
+					SendAddonMessage("Capping", "gr", "INSTANCE_CHAT")
+
 					-- set text to isle of conquest status
 					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s: %d/3; %s = %s; %s: %d/3; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
@@ -1512,6 +1524,14 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 	-- is tracked pvp?
 	local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
 	if (isTracked == true) then
+		-- has party GUID?
+		local partyGUID = "none"
+		local leaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
+		if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
+			-- use party GUID
+			partyGUID = NS.CommFlare.CF.PartyGUID
+		end
+
 		-- queued?
 		if (status == "queued") then
 			-- just entering queue?
@@ -1548,7 +1568,8 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				-- push data
 				local timestamp = time()
 				local count = NS.CommunityFlare_GetGroupCount()
-				NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Queued@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+				local guids = strformat("%s,%s", leaderGUID, partyGUID)
+				NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Queued@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count, guids))
 
 				-- delay some
 				TimerAfter(0.5, function()
@@ -1630,7 +1651,8 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 
 				-- push data
 				local timestamp = time()
-				NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Popped@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+				local guids = strformat("%s,%s", leaderGUID, partyGUID)
+				NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Popped@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count, guids))
 
 				-- port expiration not expired?
 				NS.CommFlare.CF.Expiration = GetBattlefieldPortExpiration(index)
@@ -1712,7 +1734,8 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 
 					-- push data
 					local timestamp = time()
-					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Dropped@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+					local guids = strformat("%s,%s", leaderGUID, partyGUID)
+					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Dropped@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count, guids))
 
 					-- community reporter enabled?
 					if (NS.db.profile.communityReporter == true) then
@@ -1754,7 +1777,8 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 
 					-- push data
 					local timestamp = time()
-					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Missed@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count))
+					local guids = strformat("%s,%s", leaderGUID, partyGUID)
+					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Missed@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, timestamp, count, guids))
 
 					-- are you in a party?
 					if (IsInGroup() and not IsInRaid()) then

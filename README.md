@@ -20,6 +20,10 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.08 features:
+-!status check while inside Isle of Conquest should now report Gate Percentages.
+-BUGFIX: Fixed !status reporting a win/loss properly as a Mercenary.
+
 v1.07 features:
 -New /comf deployed command to check if you still have people in community deployed in PVP.
 -New setting to allow Community Leaders list to only build from selected Communities.

@@ -74,10 +74,12 @@ local TimerAfter                                = _G.C_Timer.After
 local date                                      = _G.date
 local hooksecurefunc                            = _G.hooksecurefunc
 local ipairs                                    = _G.ipairs
+local math                                      = _G.math
 local next                                      = _G.next
 local pairs                                     = _G.pairs
 local print                                     = _G.print
 local time                                      = _G.time
+local tonumber                                  = _G.tonumber
 local strfind                                   = _G.string.find
 local strformat                                 = _G.string.format
 local strgsub                                   = _G.string.gsub
@@ -151,6 +153,14 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
 				end
 
+				-- has party GUID?
+				local partyGUID = "none"
+				local leaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
+				if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
+					-- use party GUID
+					partyGUID = NS.CommFlare.CF.PartyGUID
+				end
+
 				-- accepted queue?
 				local text = ""
 				if (acceptFlag == true) then
@@ -168,7 +178,8 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					NS.CommFlare.CF.EnteredTime = time()
 
 					-- push data
-					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Entered@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.EnteredTime, count))
+					local guids = strformat("%s,%s", leaderGUID, partyGUID)
+					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Entered@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.EnteredTime, count, guids))
 				else
 					-- mercenary?
 					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
@@ -190,7 +201,8 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					NS.CommFlare.CF.EnteredTime = 0
 
 					-- push data
-					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Left@%s@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.LeftTime, count))
+					local guids = strformat("%s,%s", leaderGUID, partyGUID)
+					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Left@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.LeftTime, count, guids))
 
 					-- clear after 30 seconds
 					TimerAfter(30, function()
@@ -843,6 +855,58 @@ function NS.CommFlare:ADDON_LOADED(msg, ...)
 
 		-- hook queue button mouse over
 		HonorFrameQueueButton:HookScript("OnEnter", NS.CommunityFlare_HonorFrameQueueButton_OnEnter)
+	end
+end
+
+-- process chat message addon
+function NS.CommFlare:CHAT_MSG_ADDON(msg, ...)
+	local prefix, text, channel, sender, target, zoneChannelID, localID, name, instanceID = ...
+
+	-- does not need addon data
+	if (NS.CommFlare.CF.NeedAddonData ~= true) then
+		-- finished
+		return
+	end
+
+	-- capping?
+	if (prefix == "Capping") then
+		-- isle of conquest?
+		if (NS.CommFlare.CF.MapID == 169) then
+			-- skip these messages
+			if ((text == "gr") or (text == "rb") or (text == "rbh")) then
+				-- finished
+				return
+			end
+
+			-- report to anyone?
+			if (NS.CommFlare.CF.StatusCheck and next(NS.CommFlare.CF.StatusCheck)) then
+				-- sanity check?
+				local h1, h1hp, h2, h2hp, h3, h3hp, a1, a1hp, a2, a2hp, a3, a3hp = strsplit(":", text)
+				local hGate1, hGate2, hGate3, aGate1, aGate2, aGate3 = tonumber(h1hp), tonumber(h2hp), tonumber(h3hp), tonumber(a1hp), tonumber(a2hp), tonumber(a3hp)
+				if (hGate1 and hGate2 and hGate3 and aGate1 and aGate2 and aGate3) then
+					-- find lowest gates
+					local allyLowest = math.min(aGate1, aGate2, aGate3) / 2400000 * 100
+					local hordeLowest = math.min(hGate1, hGate2, hGate3) / 2400000 * 100
+
+					-- process all
+					local timer = 0.0
+					local text = strformat(L["%s: Alliance Gate = %.1f, Horde Gate = %.1f"], L["Isle of Conquest"], allyLowest, hordeLowest)
+					for k,v in pairs(NS.CommFlare.CF.StatusCheck) do
+						-- send replies staggered
+						TimerAfter(timer, function()
+							-- send message
+							NS.CommunityFlare_SendMessage(k, text)
+						end)
+
+						-- next
+						timer = timer + 0.2
+					end
+				end
+
+				-- finished
+				NS.CommFlare.CF.NeedAddonData = false
+			end
+		end
 	end
 end
 
@@ -1875,6 +1939,7 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 	NS.CommFlare.CF.MatchStatus = 3
 	NS.CommFlare.CF.Winner = GetBattlefieldWinner()
 	NS.CommFlare.CF.PlayerFaction = UnitFactionGroup("player")
+	NS.CommFlare.CF.PlayerInfo = PvPGetScoreInfoByPlayerGuid(UnitGUID("player"))
 
 	-- update battleground status
 	local status = NS.CommunityFlare_Update_Battleground_Status()
@@ -1884,26 +1949,21 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		NS.CommunityFlare_Update_Member_Statistics("completed")
 		NS.CommunityFlare_Match_Started_Log_Roster()
 
-		-- player is alliance?
-		status = "N/A"
-		if (NS.CommFlare.CF.PlayerFaction == L["Alliance"]) then
-			-- horde won?
-			if (NS.CommFlare.CF.Winner == 0) then
-				-- horde victory
-				status = "Loss"
-			else
-				-- alliance victory
-				status = "Victory"
-			end
+		-- won the match?
+		if (NS.CommFlare.CF.PlayerInfo.faction == NS.CommFlare.CF.Winner) then
+			-- victory
+			status = "Victory"
 		else
-			-- horde won?
-			if (NS.CommFlare.CF.Winner == 0) then
-				-- horde victory
-				status = "Victory"
-			else
-				-- alliance victory
-				status = "Loss"
-			end
+			-- victory
+			status = "Loss"
+		end
+
+		-- has party GUID?
+		local partyGUID = "none"
+		local leaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
+		if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
+			-- use party GUID
+			partyGUID = NS.CommFlare.CF.PartyGUID
 		end
 
 		-- get MapID
@@ -1915,7 +1975,8 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 
 		-- push data
 		local timestamp = time()
-		NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Finished@%s,%s@%d@%d", NS.CommunityFlare_Version, NS.CommunityFlare_Build, NS.CommFlare.CF.MapInfo.name, status, timestamp, NS.CommFlare.CF.CommCount))
+		local guids = strformat("%s,%s", leaderGUID, partyGUID)
+		NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Finished@%s,%s@%d@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, NS.CommFlare.CF.MapInfo.name, status, timestamp, NS.CommFlare.CF.CommCount, guids))
 	end
 
 	-- report to anyone?
@@ -1925,26 +1986,13 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		for k,v in pairs(NS.CommFlare.CF.StatusCheck) do
 			-- send replies staggered
 			TimerAfter(timer, function()
-				-- player is alliance?
-				local text = ""
-				if (NS.CommFlare.CF.PlayerFaction == L["Alliance"]) then
-					-- horde won?
-					if (NS.CommFlare.CF.Winner == 0) then
-						-- horde victory
-						text = strformat("%s %s!", L["Epic battleground has completed with a"], L["loss"])
-					else
-						-- alliance victory
-						text = strformat("%s %s!", L["Epic battleground has completed with a"], L["victory"])
-					end
+				-- won the match?
+				if (NS.CommFlare.CF.PlayerInfo.faction == NS.CommFlare.CF.Winner) then
+					-- victory
+					text = strformat("%s %s!", L["Epic battleground has completed with a"], L["victory"])
 				else
-					-- horde won?
-					if (NS.CommFlare.CF.Winner == 0) then
-						-- horde victory
-						text = strformat("%s %s!", L["Epic battleground has completed with a"], L["victory"])
-					else
-						-- alliance victory
-						text = strformat("%s %s!", L["Epic battleground has completed with a"], L["loss"])
-					end
+					-- loss
+					text = strformat("%s %s!", L["Epic battleground has completed with a"], L["loss"])
 				end
 
 				-- send message
@@ -2407,6 +2455,7 @@ end
 function NS.CommFlare:OnEnable()
 	-- register events
 	self:RegisterEvent("ADDON_LOADED")
+	self:RegisterEvent("CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_BN_WHISPER")
 	self:RegisterEvent("CHAT_MSG_PARTY")
 	self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -2457,6 +2506,7 @@ end
 function NS.CommFlare:OnDisable()
 	-- unregister events
 	self:UnregisterEvent("ADDON_LOADED")
+	self:UnregisterEvent("CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_BN_WHISPER")
 	self:UnregisterEvent("CHAT_MSG_PARTY")
 	self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
@@ -2565,6 +2615,9 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 	elseif (lower == "deployed") then
 		-- check for deployed players
 		NS.CommunityFlare_Check_For_Deployed_Players()
+	--elseif (lower == "dump") then
+	--	-- copy CF to global (for debugging)
+	--	CommFlare = NS.CommFlare.CF
 	elseif (lower == "inactive") then
 		-- check for inactive players
 		print(L["Checking for inactive players"])

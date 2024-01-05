@@ -123,7 +123,7 @@ function NS.CommunityFlare_Process_Battleground_Commands(event, sender, command,
 					-- add pop info
 					local count = NS.CommunityFlare_GetGroupCount()
 					local expiration = GetBattlefieldPortExpiration(i) * 1000
-					text = text .. strformat("C,%s,%d,%d", mapName, expiration, count)
+					text = text .. strformat("C,%s,%d,%s", mapName, expiration, count)
 				-- queued?
 				elseif (status == "queued") then
 					-- add queue info

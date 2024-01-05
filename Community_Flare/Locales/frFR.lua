@@ -215,6 +215,7 @@ L["Specialization"] = "Spécialisation"
 
 -- Events.lua
 L["%s: %d Community Leaders found."] = "%s : %d Chef de communauté trouvé."
+L["%s: Alliance Gate = %.1f, Horde Gate = %.1f"] = "%s : Porte de l'Alliance = %.1f, Porte de la Horde = %.1f"
 L["%s: Listing Community Leaders"] = "%s : Liste des chefs de la communauté"
 L["%s: Refreshed members database! %d members found."] = "Base de données des membres actualisée! %d membres trouvés."
 L["%s: Reset %d profile settings to default."] = "%s : Réinitialisé %d paramètres de profil par défaut."

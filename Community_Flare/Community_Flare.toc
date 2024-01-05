@@ -1,7 +1,7 @@
 ## Interface: 100200
 ## Title: Community Flare
-## Version: v1.07
-## X-Build: 107001
+## Version: v1.08
+## X-Build: 108001
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
 ## OptionalDeps: Ace3

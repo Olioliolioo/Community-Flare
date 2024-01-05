@@ -338,10 +338,15 @@ end
 
 -- load session variables
 function NS.CommunityFlare_LoadSession()
-	-- reload settings
+	-- load global stuff
+	NS.db.global = NS.db.global or {}
+	NS.db.global.members = NS.db.global.members or {}
+	NS.CommFlare.CF.SocialQueues = NS.db.global.SocialQueues or {}
+
+	-- save profile stuff
+	NS.CommFlare.CF.PartyGUID = NS.db.profile.PartyGUID
 	NS.CommFlare.CF.MatchStatus = NS.db.profile.MatchStatus
 	NS.CommFlare.CF.LocalQueues = NS.db.profile.LocalQueues or {}
-	NS.CommFlare.CF.SocialQueues = NS.db.global.SocialQueues or {}
 
 	-- battleground specific data
 	NS.CommFlare.CF.ASH = NS.db.profile.ASH or {}
@@ -359,13 +364,14 @@ end
 
 -- save session variables
 function NS.CommunityFlare_SaveSession()
-	-- update global stuff
+	-- save global stuff
 	NS.db.global = NS.db.global or {}
 	NS.db.global.members = NS.db.global.members or {}
 	NS.db.global.SocialQueues = NS.CommFlare.CF.SocialQueues or {}
 
-	-- update profile stuff
+	-- save profile stuff
 	NS.db.profile.SavedTime = time()
+	NS.db.profile.PartyGUID = NS.CommFlare.CF.PartyGUID
 	NS.db.profile.MatchStatus = NS.CommFlare.CF.MatchStatus
 	NS.db.profile.LocalQueues = NS.CommFlare.CF.LocalQueues or {}
 

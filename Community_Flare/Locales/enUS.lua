@@ -215,6 +215,7 @@ L["Specialization"] = true
 
 -- Events.lua
 L["%s: %d Community Leaders found."] = true
+L["%s: Alliance Gate = %.1f, Horde Gate = %.1f"] = true
 L["%s: Listing Community Leaders"] = true
 L["%s: Refreshed members database! %d members found."] = true
 L["%s: Reset %d profile settings to default."] = true
