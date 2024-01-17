@@ -2636,7 +2636,7 @@ end
 NS.CommFlare:RegisterComm(ADDON_NAME, "Community_Flare_OnCommReceived")
 
 -- process slash command
-function NS.CommFlare:Community_Flare_SlashCommand(input)
+function NS.CommFlare:Community_Flare_Slash_Command(input)
 	-- force input to lowercase
 	local lower = strlower(input)
 	if (lower == "defaults") then
@@ -2706,4 +2706,4 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 end
 
 -- register slash command
-NS.CommFlare:RegisterChatCommand("comf", "Community_Flare_SlashCommand")
+NS.CommFlare:RegisterChatCommand("comf", "Community_Flare_Slash_Command")

@@ -829,8 +829,7 @@ function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 			-- has text to send?
 			if (text and (text ~= "")) then
 				-- send data
-				text = strformat("%s@%s", type, text)
-				NS.CommunityFlare_BNSendData(senderID, test)
+				NS.CommunityFlare_BNSendData(senderID, strformat("Roster@%s@%s", type, text))
 			end
 		end
 	-- get version?

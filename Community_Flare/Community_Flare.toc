@@ -1,7 +1,7 @@
 ## Interface: 100205
 ## Title: Community Flare
 ## Version: v1.09
-## X-Build: 109001
+## X-Build: 109002
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
 ## SavedVariablesPerCharacter: CommFlareCharDB
