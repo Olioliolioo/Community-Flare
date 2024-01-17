@@ -20,6 +20,10 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.09 features:
+-Last Seen Around option only shows for community member list now.
+-Bumped TOC to v10.2.5
+
 v1.08 features:
 -!status check while inside Isle of Conquest should now report Gate Percentages.
 -BUGFIX: Fixed !status reporting a win/loss properly as a Mercenary.

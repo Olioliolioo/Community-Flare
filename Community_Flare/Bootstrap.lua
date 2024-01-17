@@ -43,6 +43,7 @@ NS.CommFlare = NS.Libs.AceAddon:NewAddon(ADDON_NAME, "AceComm-3.0", "AceConsole-
 NS.CommFlare.CF = {
 	-- strings
 	MapName = "N/A",
+	MatchEndDate = "",
 	MatchStartDate = "",
 	PlayerServerName = "",
 	TurnSpeed = "",
@@ -75,6 +76,7 @@ NS.CommFlare.CF = {
 	LeftTime = 0,
 	LogListCount = 0,
 	MapID = 0,
+	MatchEndTime = 0,
 	MatchStartTime = 0,
 	MatchStatus = 0,
 	MaxPriority = 999,
@@ -91,6 +93,7 @@ NS.CommFlare.CF = {
 	Field = nil,
 	Header = nil,
 	Leader = nil,
+	LeaderGUID = nil,
 	Options = nil,
 	PartyGUID = nil,
 	PopupMessage = nil,
@@ -206,33 +209,47 @@ function NS.CommFlare:FloatingChatFrameManager_OnEvent(self, event, ...)
 	end
 end
 
+NS.GlobalDefaults = {
+	-- global
+	global = {
+		-- tables
+		clubs = {},
+		commandsLog = {},
+		history = {},
+		matchLogList = {},
+		members = {},
+		SocialQueues = {},
+	},
+}
+
 -- on initialize
 function NS.CommFlare:OnInitialize()
 	-- setup stuff
-	NS.db = NS.Libs.AceDB:New("CommunityFlareDB", NS.defaults)
-	NS.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
-	NS.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
-	NS.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
+	NS.globalDB = NS.Libs.AceDB:New("CommunityFlareDB", NS.GlobalDefaults)
+	NS.charDB = NS.Libs.AceDB:New("CommFlareCharDB", NS.defaults)
+	NS.charDB.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
+	NS.charDB.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
+	NS.charDB.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
 	NS.Libs.AceConfig:RegisterOptionsTable("CommFlare_Options", NS.options)
 	self.optionsFrame = NS.Libs.AceConfigDialog:AddToBlizOptions("CommFlare_Options", NS.CommunityFlare_Title)
-	NS.profiles = NS.Libs.AceDBOptions:GetOptionsTable(NS.db)
+	NS.profiles = NS.Libs.AceDBOptions:GetOptionsTable(NS.charDB)
 	NS.Libs.AceConfig:RegisterOptionsTable("CommFlare_Profiles", NS.profiles)
 	self.profilesFrame = NS.Libs.AceConfigDialog:AddToBlizOptions("CommFlare_Profiles", "Profiles", NS.CommunityFlare_Title)
 	NS.CommFlare:RawHook("HandlePendingInviteConfirmation", true)
 	NS.CommFlare:RawHookScript(FloatingChatFrameManager, "OnEvent", "FloatingChatFrameManager_OnEvent")
 
 	-- check for old string values?
-	if (type(NS.db.profile.blockSharedQuests) == "string") then
+	if (type(NS.charDB.profile.blockSharedQuests) == "string") then
 		-- convert to number
-		NS.db.profile.blockSharedQuests = tonumber(NS.db.profile.blockSharedQuests)
+		NS.charDB.profile.blockSharedQuests = tonumber(NS.charDB.profile.blockSharedQuests)
 	end
-	if (type(NS.db.profile.communityAutoAssist) == "string") then
+	if (type(NS.charDB.profile.communityAutoAssist) == "string") then
 		-- convert to number
-		NS.db.profile.communityAutoAssist = tonumber(NS.db.profile.communityAutoAssist)
+		NS.charDB.profile.communityAutoAssist = tonumber(NS.charDB.profile.communityAutoAssist)
 	end
-	if (type(NS.db.profile.uninvitePlayersAFK) == "string") then
+	if (type(NS.charDB.profile.uninvitePlayersAFK) == "string") then
 		-- convert to number
-		NS.db.profile.uninvitePlayersAFK = tonumber(NS.db.profile.uninvitePlayersAFK)
+		NS.charDB.profile.uninvitePlayersAFK = tonumber(NS.charDB.profile.uninvitePlayersAFK)
 	end
 end
 

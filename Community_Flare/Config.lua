@@ -56,30 +56,30 @@ function NS.CommunityFlare_Set_Main_Community(info, value)
 		NS.CommunityFlare_AddAllClubMembersByClubID(value)
 
 		-- set default report ID
-		NS.db.profile.communityReportID = value
+		NS.charDB.profile.communityReportID = value
 
 		-- has value?
 		if (value and (value > 1)) then
 			-- enable community lists
-			NS.db.profile.communityLogList[value] = true
-			NS.db.profile.communityLeadersList[value] = true
+			NS.charDB.profile.communityLogList[value] = true
+			NS.charDB.profile.communityLeadersList[value] = true
 		end
 
 		-- readd community chat window
-		NS.CommunityFlare_ReaddCommunityChatWindow(NS.db.profile.communityReportID, 1)
+		NS.CommunityFlare_ReaddCommunityChatWindow(NS.charDB.profile.communityReportID, 1)
 	else
 
 		-- find main community club
 		local clubs = {}
-		if (NS.db.profile.communityMain > 0) then
+		if (NS.charDB.profile.communityMain > 0) then
 			-- add club id
-			tinsert(clubs, NS.db.profile.communityMain)
+			tinsert(clubs, NS.charDB.profile.communityMain)
 		end
 
 		-- has community list?
-		if (NS.db.profile.communityList and (next(NS.db.profile.communityList) ~= nil)) then
+		if (NS.charDB.profile.communityList and (next(NS.charDB.profile.communityList) ~= nil)) then
 			-- process all lists
-			for k,_ in pairs(NS.db.profile.communityList) do
+			for k,_ in pairs(NS.charDB.profile.communityList) do
 				-- add club id
 				tinsert(clubs, k)
 			end
@@ -91,25 +91,25 @@ function NS.CommunityFlare_Set_Main_Community(info, value)
 			NS.CommunityFlare_RemoveAllClubMembersByClubID(clubId)
 
 			-- disable community lists
-			NS.db.profile.communityLogList[clubId] = nil
-			NS.db.profile.communityLeadersList[clubId] = nil
+			NS.charDB.profile.communityLogList[clubId] = nil
+			NS.charDB.profile.communityLeadersList[clubId] = nil
 		end
 
 		-- clear community report id
-		NS.db.profile.communityReportID = 1
+		NS.charDB.profile.communityReportID = 1
 
 		-- disable community leaders list
-		NS.db.profile.communityLeadersList[value] = nil
+		NS.charDB.profile.communityLeadersList[value] = nil
 	end
 
 	-- rebuild community leaders
 	NS.CommunityFlare_RebuildCommunityLeaders()
 
 	-- save main community
-	NS.db.profile.communityMain = value
+	NS.charDB.profile.communityMain = value
 
 	-- always clear community list
-	NS.db.profile.communityList = {}
+	NS.charDB.profile.communityList = {}
 end
 
 -- setup other community list
@@ -123,9 +123,9 @@ function NS.CommunityFlare_Setup_Other_Community_List(info)
 		if (v.clubType == Enum.ClubType.Character) then
 			-- has main community?
 			local add = true
-			if (NS.db.profile.communityMain and (NS.db.profile.communityMain > 1)) then
+			if (NS.charDB.profile.communityMain and (NS.charDB.profile.communityMain > 1)) then
 				-- skip if matching
-				if (v.clubId == NS.db.profile.communityMain) then
+				if (v.clubId == NS.charDB.profile.communityMain) then
 					-- do not add
 					add = false
 				end
@@ -153,7 +153,7 @@ end
 -- other community disabled?
 function NS.CommunityFlare_Other_Community_List_Disabled()
 	-- main community set?
-	if (NS.db.profile.communityMain > 1) then
+	if (NS.charDB.profile.communityMain > 1) then
 		-- process all
 		NS.CommFlare.CF.ClubCount = 0
 		NS.CommFlare.CF.Clubs = ClubGetSubscribedClubs()
@@ -161,7 +161,7 @@ function NS.CommunityFlare_Other_Community_List_Disabled()
 			-- only communities
 			if (v.clubType == Enum.ClubType.Character) then
 				-- not main?
-				if (v.clubId ~= NS.db.profile.communityMain) then
+				if (v.clubId ~= NS.charDB.profile.communityMain) then
 					-- increase
 					NS.CommFlare.CF.ClubCount = NS.CommFlare.CF.ClubCount + 1
 				end
@@ -178,7 +178,7 @@ function NS.CommunityFlare_Other_Community_List_Disabled()
 		return false
 	else
 		-- disabled
-		NS.db.profile.communityReportID = 1
+		NS.charDB.profile.communityReportID = 1
 		return true
 	end
 end
@@ -188,15 +188,15 @@ function NS.CommunityFlare_Other_Community_Get_Item(info, key)
 	-- community list?
 	if (info[#info] == "communityList") then
 		-- not initialized?
-		if (not NS.db.profile.communityList) then
+		if (not NS.charDB.profile.communityList) then
 			-- initialize
-			NS.db.profile.communityList = {}
+			NS.charDB.profile.communityList = {}
 		end
 
 		-- valid?
-		if (NS.db.profile.communityList[key]) then
+		if (NS.charDB.profile.communityList[key]) then
 			-- return value
-			return NS.db.profile.communityList[key]
+			return NS.charDB.profile.communityList[key]
 		end
 	end
 
@@ -209,15 +209,15 @@ function NS.CommunityFlare_Other_Community_Set_Item(info, key, value)
 	-- community list?
 	if (info[#info] == "communityList") then
 		-- not initialized?
-		if (not NS.db.profile.communityList) then
+		if (not NS.charDB.profile.communityList) then
 			-- initialize
-			NS.db.profile.communityList = {}
+			NS.charDB.profile.communityList = {}
 		end
 
 		-- true value?
 		if (value == true) then
 			-- set the value
-			NS.db.profile.communityList[key] = value
+			NS.charDB.profile.communityList[key] = value
 
 			-- update members
 			NS.CommunityFlare_UpdateMembers(key, true)
@@ -226,7 +226,7 @@ function NS.CommunityFlare_Other_Community_Set_Item(info, key, value)
 			NS.CommunityFlare_ReaddCommunityChatWindow(key, 1)
 		else
 			-- clear the value
-			NS.db.profile.communityList[key] = nil
+			NS.charDB.profile.communityList[key] = nil
 
 			-- update members
 			NS.CommunityFlare_UpdateMembers(key, false)
@@ -262,7 +262,7 @@ end
 -- setup community leader list disabled?
 function NS.CommunityFlare_Community_Leader_List_Disabled()
 	-- has main community?
-	if (NS.db.profile.communityMain > 1) then
+	if (NS.charDB.profile.communityMain > 1) then
 		-- enabled
 		return false
 	end
@@ -274,7 +274,7 @@ end
 -- setup community log list disabled?
 function NS.CommunityFlare_Community_Log_List_Disabled()
 	-- has main community?
-	if (NS.db.profile.communityMain > 1) then
+	if (NS.charDB.profile.communityMain > 1) then
 		-- enabled
 		return false
 	end
@@ -288,28 +288,28 @@ function NS.CommunityFlare_Community_List_Get_Item(info, key)
 	-- community leader list?
 	if (info[#info] == "communityLeadersList") then
 		-- not initialized?
-		if (not NS.db.profile.communityLeadersList) then
+		if (not NS.charDB.profile.communityLeadersList) then
 			-- initialize
-			NS.db.profile.communityLeadersList = {}
+			NS.charDB.profile.communityLeadersList = {}
 		end
 
 		-- valid?
-		if (NS.db.profile.communityLeadersList[key]) then
+		if (NS.charDB.profile.communityLeadersList[key]) then
 			-- return value
-			return NS.db.profile.communityLeadersList[key]
+			return NS.charDB.profile.communityLeadersList[key]
 		end
 	-- community log list?
 	elseif (info[#info] == "communityLogList") then
 		-- not initialized?
-		if (not NS.db.profile.communityLogList) then
+		if (not NS.charDB.profile.communityLogList) then
 			-- initialize
-			NS.db.profile.communityLogList = {}
+			NS.charDB.profile.communityLogList = {}
 		end
 
 		-- valid?
-		if (NS.db.profile.communityLogList[key]) then
+		if (NS.charDB.profile.communityLogList[key]) then
 			-- return value
-			return NS.db.profile.communityLogList[key]
+			return NS.charDB.profile.communityLogList[key]
 		end
 	end
 
@@ -322,18 +322,18 @@ function NS.CommunityFlare_Community_List_Set_Item(info, key, value)
 	-- community leader list?
 	if (info[#info] == "communityLeadersList") then
 		-- not initialized?
-		if (not NS.db.profile.communityLeadersList) then
+		if (not NS.charDB.profile.communityLeadersList) then
 			-- initialize
-			NS.db.profile.communityLeadersList = {}
+			NS.charDB.profile.communityLeadersList = {}
 		end
 
 		-- true value?
 		if (value == true) then
 			-- set the value
-			NS.db.profile.communityLeadersList[key] = value
+			NS.charDB.profile.communityLeadersList[key] = value
 		else
 			-- clear the value
-			NS.db.profile.communityLeadersList[key] = nil
+			NS.charDB.profile.communityLeadersList[key] = nil
 		end
 
 		-- rebuild community leaders
@@ -351,18 +351,18 @@ function NS.CommunityFlare_Community_List_Set_Item(info, key, value)
 	-- community monitor list?
 	elseif (info[#info] == "communityLogList") then
 		-- not initialized?
-		if (not NS.db.profile.communityLogList) then
+		if (not NS.charDB.profile.communityLogList) then
 			-- initialize
-			NS.db.profile.communityLogList = {}
+			NS.charDB.profile.communityLogList = {}
 		end
 
 		-- true value?
 		if (value == true) then
 			-- set the value
-			NS.db.profile.communityLogList[key] = value
+			NS.charDB.profile.communityLogList[key] = value
 		else
 			-- clear the value
-			NS.db.profile.communityLogList[key] = nil
+			NS.charDB.profile.communityLogList[key] = nil
 		end
 	end
 end
@@ -370,12 +370,12 @@ end
 -- is disabled?
 function NS.CommunityFlare_Check_ReportID_Disabled()
 	-- main community set?
-	if (NS.db.profile.communityMain > 1) then
+	if (NS.charDB.profile.communityMain > 1) then
 		-- enabled
 		return false
 	else
 		-- disabled
-		NS.db.profile.communityReportID = 1
+		NS.charDB.profile.communityReportID = 1
 		return true
 	end
 end
@@ -383,12 +383,12 @@ end
 -- set report id / setup channel
 function NS.CommunityFlare_Set_ReportID(info, value)
 	-- save new value
-	NS.db.profile.communityReportID = value
+	NS.charDB.profile.communityReportID = value
 
 	-- has report ID?
-	if (NS.db.profile.communityReportID > 1) then
+	if (NS.charDB.profile.communityReportID > 1) then
 		-- readd community chat window
-		NS.CommunityFlare_ReaddCommunityChatWindow(NS.db.profile.communityReportID, 1)
+		NS.CommunityFlare_ReaddCommunityChatWindow(NS.charDB.profile.communityReportID, 1)
 	end
 end
 
@@ -411,13 +411,13 @@ function NS.CommunityFlare_Get_Force_Tank_Item(info)
 	NS.CommunityFlare_Enforce_PVP_Roles()
 
 	-- return value
-	return NS.db.profile.forceTank
+	return NS.charDB.profile.forceTank
 end
 
 -- set force tank item
 function NS.CommunityFlare_Set_Force_Tank_Item(info, value)
 	-- set value
-	NS.db.profile.forceTank = value
+	NS.charDB.profile.forceTank = value
 
 	-- enforce pvp roles
 	NS.CommunityFlare_Enforce_PVP_Roles()
@@ -442,13 +442,13 @@ function NS.CommunityFlare_Get_Force_Healer_Item(info)
 	NS.CommunityFlare_Enforce_PVP_Roles()
 
 	-- return value
-	return NS.db.profile.forceHealer
+	return NS.charDB.profile.forceHealer
 end
 
 -- set force healer item
 function NS.CommunityFlare_Set_Force_Healer_Item(info, value)
 	-- set value
-	NS.db.profile.forceHealer = value
+	NS.charDB.profile.forceHealer = value
 
 	-- enforce pvp roles
 	NS.CommunityFlare_Enforce_PVP_Roles()
@@ -460,13 +460,13 @@ function NS.CommunityFlare_Get_Force_DPS_Item(info)
 	NS.CommunityFlare_Enforce_PVP_Roles()
 
 	-- return value
-	return NS.db.profile.forceDPS
+	return NS.charDB.profile.forceDPS
 end
 
 -- set force dps item
 function NS.CommunityFlare_Set_Force_DPS_Item(info, value)
 	-- set value
-	NS.db.profile.forceDPS = value
+	NS.charDB.profile.forceDPS = value
 
 	-- enforce pvp roles
 	NS.CommunityFlare_Enforce_PVP_Roles()
@@ -474,19 +474,9 @@ end
 
 -- setup total database members
 function NS.CommunityFlare_Total_Database_Members(info)
-	-- sanity checks?
-	if (not NS.db.global) then
-		-- initialize
-		NS.db.global = {}
-	end
-	if (not NS.db.global.members) then
-		-- initialize
-		NS.db.global.members = {}
-	end
-
 	-- process all members
 	local count = 0
-	for k,v in pairs(NS.db.global.members) do
+	for k,v in pairs(NS.globalDB.global.members) do
 		-- increase
 		count = count + 1
 	end
@@ -497,30 +487,14 @@ end
 
 -- refresh database members
 function NS.CommunityFlare_Refresh_Database_Members()
-	-- sanity checks?
-	if (not NS.db.global) then
-		-- initialize
-		NS.db.global = {}
-	end
-	if (not NS.db.global.members) then
-		-- initialize
-		NS.db.global.members = {}
-	end
-
 	-- refresh database
 	NS.CommunityFlare_Refresh_Database()
 end
 
 -- rebuild database members
 function NS.CommunityFlare_Rebuild_Database_Members()
-	-- sanity checks?
-	if (not NS.db.global) then
-		-- initialize
-		NS.db.global = {}
-	end
-
 	-- clear lists
-	NS.db.global.members = {}
+	NS.globalDB.global.members = {}
 	NS.CommFlare.CF.CommunityLeaders = {}
 
 	-- process club members again
@@ -579,7 +553,7 @@ StaticPopupDialogs["CommunityFlare_ReloadUI_Required_Dialog"] = {
 			-- block hotkeys?
 			if (k == "blockGameMenuHotKeys") then
 				-- save value
-				NS.db.profile.blockGameMenuHotKeys = v
+				NS.charDB.profile.blockGameMenuHotKeys = v
 			end
 		end
 
@@ -596,7 +570,7 @@ function NS.CommunityFlare_BlockGameMenuHotKeys_Set(info, value)
 	-- enabled?
 	if (value == true) then
 		-- save value
-		NS.db.profile.blockGameMenuHotKeys = value
+		NS.charDB.profile.blockGameMenuHotKeys = value
 
 		-- enable block game menu hooks
 		NS.CommunityFlare_Setup_BlockGameMenuHooks()
@@ -677,7 +651,7 @@ NS.options = {
 					name = L["Main Community?"],
 					desc = L["Choose the main community from your subscribed list."],
 					values = NS.CommunityFlare_Setup_Main_Community_List,
-					get = function(info) return NS.db.profile.communityMain end,
+					get = function(info) return NS.charDB.profile.communityMain end,
 					set = NS.CommunityFlare_Set_Main_Community,
 				},
 				communityList = {
@@ -725,8 +699,8 @@ NS.options = {
 					name = L["Always remove, then re-add community channels to general? *EXPERIMENTAL*"],
 					desc = L["This will automatically delete communities channels from general and re-add them upon login."],
 					width = "full",
-					get = function(info) return NS.db.profile.alwaysReaddChannels end,
-					set = function(info, value) NS.db.profile.alwaysReaddChannels = value end,
+					get = function(info) return NS.charDB.profile.alwaysReaddChannels end,
+					set = function(info, value) NS.charDB.profile.alwaysReaddChannels = value end,
 				},
 			},
 		},
@@ -742,8 +716,8 @@ NS.options = {
 					name = L["Automatically accept invites from Battle.NET friends?"],
 					desc = L["This will automatically accept group/party invites from Battle.NET friends."],
 					width = "full",
-					get = function(info) return NS.db.profile.bnetAutoInvite end,
-					set = function(info, value) NS.db.profile.bnetAutoInvite = value end,
+					get = function(info) return NS.charDB.profile.bnetAutoInvite end,
+					set = function(info, value) NS.charDB.profile.bnetAutoInvite = value end,
 				},
 				communityAutoInvite = {
 					type = "toggle",
@@ -751,8 +725,8 @@ NS.options = {
 					name = L["Automatically accept invites from community members?"],
 					desc = L["This will automatically accept group/party invites from community members."],
 					width = "full",
-					get = function(info) return NS.db.profile.communityAutoInvite end,
-					set = function(info, value) NS.db.profile.communityAutoInvite = value end,
+					get = function(info) return NS.charDB.profile.communityAutoInvite end,
+					set = function(info, value) NS.charDB.profile.communityAutoInvite = value end,
 				},
 			},
 		},
@@ -768,8 +742,8 @@ NS.options = {
 					name = L["Always automatically queue?"],
 					desc = L["This will always automatically accept all queues for you."],
 					width = "full",
-					get = function(info) return NS.db.profile.alwaysAutoQueue end,
-					set = function(info, value) NS.db.profile.alwaysAutoQueue = value end,
+					get = function(info) return NS.charDB.profile.alwaysAutoQueue end,
+					set = function(info, value) NS.charDB.profile.alwaysAutoQueue = value end,
 				},
 				bnetAutoQueue = {
 					type = "toggle",
@@ -777,8 +751,8 @@ NS.options = {
 					name = L["Automatically queue if your group leader is your Battle.Net friend?"],
 					desc = L["This will automatically queue if your group leader is your Battle.Net friend."],
 					width = "full",
-					get = function(info) return NS.db.profile.bnetAutoQueue end,
-					set = function(info, value) NS.db.profile.bnetAutoQueue = value end,
+					get = function(info) return NS.charDB.profile.bnetAutoQueue end,
+					set = function(info, value) NS.charDB.profile.bnetAutoQueue = value end,
 				},
 				communityAutoQueue = {
 					type = "toggle",
@@ -786,8 +760,8 @@ NS.options = {
 					name = L["Automatically queue if your group leader is in community?"],
 					desc = L["This will automatically queue if your group leader is in community."],
 					width = "full",
-					get = function(info) return NS.db.profile.communityAutoQueue end,
-					set = function(info, value) NS.db.profile.communityAutoQueue = value end,
+					get = function(info) return NS.charDB.profile.communityAutoQueue end,
+					set = function(info, value) NS.charDB.profile.communityAutoQueue = value end,
 				},
 				displayPoppedGroups = {
 					type = "toggle",
@@ -795,8 +769,8 @@ NS.options = {
 					name = L["Display notification for popped groups?"],
 					desc = L["This will display a notification in your General chat window when groups pop."],
 					width = "full",
-					get = function(info) return NS.db.profile.displayPoppedGroups end,
-					set = function(info, value) NS.db.profile.displayPoppedGroups = value end,
+					get = function(info) return NS.charDB.profile.displayPoppedGroups end,
+					set = function(info, value) NS.charDB.profile.displayPoppedGroups = value end,
 				},
 				popupQueueWindow = {
 					type = "toggle",
@@ -804,8 +778,8 @@ NS.options = {
 					name = L["Popup PVP queue window upon leaders queing up? (Only for group leaders.)"],
 					desc = L["This will open up the PVP queue window if a leader is queing up for PVP so you can queue up too."],
 					width = "full",
-					get = function(info) return NS.db.profile.popupQueueWindow end,
-					set = function(info, value) NS.db.profile.popupQueueWindow = value end,
+					get = function(info) return NS.charDB.profile.popupQueueWindow end,
+					set = function(info, value) NS.charDB.profile.popupQueueWindow = value end,
 				},
 				warningQueuePaused = {
 					type = "toggle",
@@ -813,8 +787,8 @@ NS.options = {
 					name = L["Warn if/when queues become paused?"],
 					desc = L["This will provide a warning message or popup message for Group Leaders, if/when their queue becomes paused."],
 					width = "full",
-					get = function(info) return NS.db.profile.warningQueuePaused end,
-					set = function(info, value) NS.db.profile.warningQueuePaused = value end,
+					get = function(info) return NS.charDB.profile.warningQueuePaused end,
+					set = function(info, value) NS.charDB.profile.warningQueuePaused = value end,
 				},
 				communityReporter = {
 					type = "toggle",
@@ -822,8 +796,8 @@ NS.options = {
 					name = L["Report queues to main community? (Requires community channel to have /# assigned.)"],
 					desc = L["This will provide a quick popup message for you to send your queue status to the Community chat."],
 					width = "full",
-					get = function(info) return NS.db.profile.communityReporter end,
-					set = function(info, value) NS.db.profile.communityReporter = value end,
+					get = function(info) return NS.charDB.profile.communityReporter end,
+					set = function(info, value) NS.charDB.profile.communityReporter = value end,
 				},
 				communityReportID = {
 					type = "select",
@@ -832,7 +806,7 @@ NS.options = {
 					desc = L["Choose the community that you want to report queues to."],
 					values = NS.CommunityFlare_Setup_Report_Community_List,
 					disabled = NS.CommunityFlare_Check_ReportID_Disabled,
-					get = function(info) return NS.db.profile.communityReportID end,
+					get = function(info) return NS.charDB.profile.communityReportID end,
 					set = NS.CommunityFlare_Set_ReportID,
 				},
 				uninvitePlayersAFK = {
@@ -847,8 +821,8 @@ NS.options = {
 						[5] = L["5 Seconds"],
 						[6] = L["6 Seconds"],
 					},
-					get = function(info) return NS.db.profile.uninvitePlayersAFK end,
-					set = function(info, value) NS.db.profile.uninvitePlayersAFK = value end,
+					get = function(info) return NS.charDB.profile.uninvitePlayersAFK end,
+					set = function(info, value) NS.charDB.profile.uninvitePlayersAFK = value end,
 				},
 				forcedRoles = {
 					type = "group",
@@ -901,8 +875,8 @@ NS.options = {
 						[1] = L["None"],
 						[2] = L["Raid Warning"],
 					},
-					get = function(info) return NS.db.profile.partyLeaderNotify end,
-					set = function(info, value) NS.db.profile.partyLeaderNotify = value end,
+					get = function(info) return NS.charDB.profile.partyLeaderNotify end,
+					set = function(info, value) NS.charDB.profile.partyLeaderNotify = value end,
 				},
 			},
 		},
@@ -922,8 +896,8 @@ NS.options = {
 						[2] = L["Leaders Only"],
 						[3] = L["All Community Members"],
 					},
-					get = function(info) return NS.db.profile.communityAutoAssist end,
-					set = function(info, value) NS.db.profile.communityAutoAssist = value end,
+					get = function(info) return NS.charDB.profile.communityAutoAssist end,
+					set = function(info, value) NS.charDB.profile.communityAutoAssist = value end,
 				},
 				blockSharedQuests = {
 					type = "select",
@@ -935,8 +909,8 @@ NS.options = {
 						[2] = L["Irrelevant"],
 						[3] = L["All"],
 					},
-					get = function(info) return NS.db.profile.blockSharedQuests end,
-					set = function(info, value) NS.db.profile.blockSharedQuests = value end,
+					get = function(info) return NS.charDB.profile.blockSharedQuests end,
+					set = function(info, value) NS.charDB.profile.blockSharedQuests = value end,
 				},
 				adjustVehicleTurnSpeed = {
 					type = "select",
@@ -949,8 +923,8 @@ NS.options = {
 						[2] = L["Fast (360)"],
 						[3] = L["Max (540)"],
 					},
-					get = function(info) return NS.db.profile.adjustVehicleTurnSpeed end,
-					set = function(info, value) NS.db.profile.adjustVehicleTurnSpeed = value end,
+					get = function(info) return NS.charDB.profile.adjustVehicleTurnSpeed end,
+					set = function(info, value) NS.charDB.profile.adjustVehicleTurnSpeed = value end,
 				},
 				warningLeavingBG = {
 					type = "select",
@@ -961,8 +935,8 @@ NS.options = {
 						[1] = L["None"],
 						[2] = L["Raid Warning"],
 					},
-					get = function(info) return NS.db.profile.warningLeavingBG end,
-					set = function(info, value) NS.db.profile.warningLeavingBG = value end,
+					get = function(info) return NS.charDB.profile.warningLeavingBG end,
+					set = function(info, value) NS.charDB.profile.warningLeavingBG = value end,
 				},
 				communityLogList = {
 					type = "multiselect",
@@ -980,8 +954,8 @@ NS.options = {
 					name = L["Display community member names when running /comf command?"],
 					desc = L["This will automatically display all community members found in the battleground when the /comf command is run."],
 					width = "full",
-					get = function(info) return NS.db.profile.communityDisplayNames end,
-					set = function(info, value) NS.db.profile.communityDisplayNames = value end,
+					get = function(info) return NS.charDB.profile.communityDisplayNames end,
+					set = function(info, value) NS.charDB.profile.communityDisplayNames = value end,
 				},
 				restrictPings = {
 					type = "toggle",
@@ -989,8 +963,8 @@ NS.options = {
 					name = L["Restrict players from using the /ping system?"],
 					desc = L["This will block players from using the /ping system if they do not have raid assist or raid lead."],
 					width = "full",
-					get = function(info) return NS.db.profile.restrictPings end,
-					set = function(info, value) NS.db.profile.restrictPings = value end,
+					get = function(info) return NS.charDB.profile.restrictPings end,
+					set = function(info, value) NS.charDB.profile.restrictPings = value end,
 				},
 				blockGameMenuHotKeys = {
 					type = "toggle",
@@ -998,7 +972,7 @@ NS.options = {
 					name = L["Block game menu hotkeys inside PVP content?"],
 					desc = L["This will block the game menus from coming up inside an arena or battleground from pressing their hot keys. (To block during recording videos for example.)"],
 					width = "full",
-					get = function(info) return NS.db.profile.blockGameMenuHotKeys end,
+					get = function(info) return NS.charDB.profile.blockGameMenuHotKeys end,
 					set = NS.CommunityFlare_BlockGameMenuHotKeys_Set,
 				},
 			},
@@ -1015,8 +989,8 @@ NS.options = {
 					name = L["Enable debug mode to help debug issues?"],
 					desc = L["This will do various things to help with debugging bugs in the addon to help MESO fix bugs."],
 					width = "full",
-					get = function(info) return NS.db.profile.debugMode end,
-					set = function(info, value) NS.db.profile.debugMode = value end,
+					get = function(info) return NS.charDB.profile.debugMode end,
+					set = function(info, value) NS.charDB.profile.debugMode = value end,
 				},
 				printDebugInfo = {
 					type = "toggle",
@@ -1024,8 +998,8 @@ NS.options = {
 					name = L["Enable some debug printing to general window to help debug issues?"],
 					desc = L["This will print some extra data to your general window that will help MESO debug anything to help fix bugs."],
 					width = "full",
-					get = function(info) return NS.db.profile.printDebugInfo end,
-					set = function(info, value) NS.db.profile.printDebugInfo = value end,
+					get = function(info) return NS.charDB.profile.printDebugInfo end,
+					set = function(info, value) NS.charDB.profile.printDebugInfo = value end,
 				},
 			},
 		},
@@ -1038,9 +1012,9 @@ function NS.CommunityFlare_Reset_Default_Settings()
 	local count = 0
 	for k,v in pairs(NS.defaults.profile) do
 		-- not default?
-		if (NS.db.profile[k] ~= v) then
+		if (NS.charDB.profile[k] ~= v) then
 			-- set default
-			NS.db.profile[k] = v
+			NS.charDB.profile[k] = v
 
 			-- increase
 			count = count + 1

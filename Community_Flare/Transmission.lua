@@ -46,25 +46,19 @@ local tinsert                                   = _G.table.insert
 
 -- log command
 function NS.CommunityFlare_Log_Command(event, sender, text)
-	-- not initialized?
-	if (not NS.db.global.commandsLog) then
-		-- initialize
-		NS.db.global.commandsLog = {}
-	end
-
 	-- purge older
 	local timestamp = time()
-	for k,v in pairs(NS.db.global.commandsLog) do
+	for k,v in pairs(NS.globalDB.global.commandsLog) do
 		-- older found?
 		if (not v.timestamp or (k > 1000000)) then
 			-- delete
-			NS.db.global.commandsLog[k] = nil
+			NS.globalDB.global.commandsLog[k] = nil
 		else
 			-- older than 7 days?
 			local older = v.timestamp + (7 * 86400)
 			if (timestamp > older) then
 				-- delete
-				NS.db.global.commandsLog[k] = nil
+				NS.globalDB.global.commandsLog[k] = nil
 			end
 		end
 	end
@@ -87,7 +81,7 @@ function NS.CommunityFlare_Log_Command(event, sender, text)
 	}
 
 	-- insert
-	tinsert(NS.db.global.commandsLog, entry)
+	tinsert(NS.globalDB.global.commandsLog, entry)
 end
 
 -- process battleground commands
@@ -794,4 +788,54 @@ function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 
 	-- finished
 	return true
+end
+
+-- process battle net commands
+function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
+	-- get alliance roster?
+	if (text:find("GetRoster")) then
+		-- horde only?
+		local type = "Full"
+		local roster = nil
+		if (text:find("Horde")) then
+			-- get horde roster
+			type = "Horde"
+			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(0)
+		-- alliance only?
+		elseif (text:find("Alliance")) then
+			-- get alliance roster
+			type = "Alliance"
+			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(1)
+		else
+			-- get full roster
+			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster()
+		end
+
+		-- has roster?
+		if (roster) then
+			-- process all
+			local text = nil
+			for k,v in ipairs(roster) do
+				-- first?
+				if (not text) then
+					-- add first
+					text = v
+				else
+					-- append
+					text = strformat("%s,%s", text, v)
+				end
+			end
+
+			-- has text to send?
+			if (text and (text ~= "")) then
+				-- send data
+				text = strformat("%s@%s", type, text)
+				NS.CommunityFlare_BNSendData(senderID, test)
+			end
+		end
+	-- get version?
+	elseif (text:find("GetVersion")) then
+		-- send data
+		NS.CommunityFlare_BNSendData(senderID, strformat("Version@%s,%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build))
+	end
 end

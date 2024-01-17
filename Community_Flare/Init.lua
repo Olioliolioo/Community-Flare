@@ -33,6 +33,7 @@ local SetPVPRoles                               = _G.SetPVPRoles
 local StaticPopupDialogs                        = _G.StaticPopupDialogs
 local StaticPopup_Show                          = _G.StaticPopup_Show
 local UninviteUnit                              = _G.UninviteUnit
+local UnitExists                                = _G.UnitExists
 local UnitFullName                              = _G.UnitFullName
 local UnitGUID                                  = _G.UnitGUID
 local UnitIsConnected                           = _G.UnitIsConnected
@@ -52,6 +53,7 @@ local ClubGetSubscribedClubs                    = _G.C_Club.GetSubscribedClubs
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local MapGetMapInfo                             = _G.C_Map.GetMapInfo
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
+local SocialQueueGetGroupForPlayer              = _G.C_SocialQueue.GetGroupForPlayer
 local TimerAfter                                = _G.C_Timer.After
 local ReloadUI                                  = _G.C_UI.Reload()
 local pairs                                     = _G.pairs
@@ -170,7 +172,7 @@ end
 -- global function (send variables to other addons)
 function CommunityFlare_GetVar(name)
 	-- not loaded?
-	if (not NS.CommFlare or not NS.db) then
+	if (not NS.CommFlare or not NS.globalDB) then
 		-- failed
 		return nil
 	end
@@ -339,20 +341,18 @@ end
 -- load session variables
 function NS.CommunityFlare_LoadSession()
 	-- load global stuff
-	NS.db.global = NS.db.global or {}
-	NS.db.global.members = NS.db.global.members or {}
-	NS.CommFlare.CF.SocialQueues = NS.db.global.SocialQueues or {}
+	NS.CommFlare.CF.SocialQueues = NS.globalDB.global.SocialQueues or {}
 
 	-- save profile stuff
-	NS.CommFlare.CF.PartyGUID = NS.db.profile.PartyGUID
-	NS.CommFlare.CF.MatchStatus = NS.db.profile.MatchStatus
-	NS.CommFlare.CF.LocalQueues = NS.db.profile.LocalQueues or {}
+	NS.CommFlare.CF.PartyGUID = NS.charDB.profile.PartyGUID
+	NS.CommFlare.CF.MatchStatus = NS.charDB.profile.MatchStatus
+	NS.CommFlare.CF.LocalQueues = NS.charDB.profile.LocalQueues or {}
 
 	-- battleground specific data
-	NS.CommFlare.CF.ASH = NS.db.profile.ASH or {}
-	NS.CommFlare.CF.AV = NS.db.profile.AV or {}
-	NS.CommFlare.CF.IOC = NS.db.profile.IOC or {}
-	NS.CommFlare.CF.WG = NS.db.profile.WG or {}
+	NS.CommFlare.CF.ASH = NS.charDB.profile.ASH or {}
+	NS.CommFlare.CF.AV = NS.charDB.profile.AV or {}
+	NS.CommFlare.CF.IOC = NS.charDB.profile.IOC or {}
+	NS.CommFlare.CF.WG = NS.charDB.profile.WG or {}
 
 	-- get MapID
 	NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
@@ -365,35 +365,33 @@ end
 -- save session variables
 function NS.CommunityFlare_SaveSession()
 	-- save global stuff
-	NS.db.global = NS.db.global or {}
-	NS.db.global.members = NS.db.global.members or {}
-	NS.db.global.SocialQueues = NS.CommFlare.CF.SocialQueues or {}
+	NS.globalDB.global.SocialQueues = NS.CommFlare.CF.SocialQueues or {}
 
 	-- save profile stuff
-	NS.db.profile.SavedTime = time()
-	NS.db.profile.PartyGUID = NS.CommFlare.CF.PartyGUID
-	NS.db.profile.MatchStatus = NS.CommFlare.CF.MatchStatus
-	NS.db.profile.LocalQueues = NS.CommFlare.CF.LocalQueues or {}
+	NS.charDB.profile.SavedTime = time()
+	NS.charDB.profile.PartyGUID = NS.CommFlare.CF.PartyGUID
+	NS.charDB.profile.MatchStatus = NS.CommFlare.CF.MatchStatus
+	NS.charDB.profile.LocalQueues = NS.CommFlare.CF.LocalQueues or {}
 
 	-- currently in battleground?
 	if (PvPIsBattleground() == true) then
 		-- save any settings
-		NS.db.profile.ASH = NS.CommFlare.CF.ASH or {}
-		NS.db.profile.AV = NS.CommFlare.CF.AV or {}
-		NS.db.profile.IOC = NS.CommFlare.CF.IOC or {}
-		NS.db.profile.WG = NS.CommFlare.CF.WG or {}
+		NS.charDB.profile.ASH = NS.CommFlare.CF.ASH or {}
+		NS.charDB.profile.AV = NS.CommFlare.CF.AV or {}
+		NS.charDB.profile.IOC = NS.CommFlare.CF.IOC or {}
+		NS.charDB.profile.WG = NS.CommFlare.CF.WG or {}
 	else
 		-- reset settings
-		NS.db.profile.ASH = {}
-		NS.db.profile.AV = {}
-		NS.db.profile.IOC = {}
-		NS.db.profile.WG = {}
+		NS.charDB.profile.ASH = {}
+		NS.charDB.profile.AV = {}
+		NS.charDB.profile.IOC = {}
+		NS.charDB.profile.WG = {}
 	end
 
 	-- debug mode?
-	if (NS.db.profile.debugMode == true) then
+	if (NS.charDB.profile.debugMode == true) then
 		-- save CF
-		NS.db.profile.CF = NS.CommFlare.CF
+		NS.charDB.profile.CF = NS.CommFlare.CF
 	end
 end
 
@@ -448,16 +446,16 @@ end
 -- re-add community channels on initial load
 function NS.CommunityFlare_ReaddChannelsInitialLoad()
 	-- has main community?
-	if (NS.db.profile.communityMain > 1) then
+	if (NS.charDB.profile.communityMain > 1) then
 		-- readd community chat window
-		NS.CommunityFlare_ReaddCommunityChatWindow(NS.db.profile.communityMain, 1)
+		NS.CommunityFlare_ReaddCommunityChatWindow(NS.charDB.profile.communityMain, 1)
 	end
 
 	-- has other communities?
-	if (next(NS.db.profile.communityList)) then
+	if (next(NS.charDB.profile.communityList)) then
 		-- process all
 		local timer = 0.2
-		for k,v in pairs(NS.db.profile.communityList) do
+		for k,v in pairs(NS.charDB.profile.communityList) do
 			-- only process true
 			if (v == true) then
 				-- stagger readding
@@ -509,21 +507,21 @@ end
 function NS.CommunityFlare_Enforce_PVP_Roles()
 	-- force tank role?
 	local isTank = false
-	if (NS.db.profile.forceTank == true) then
+	if (NS.charDB.profile.forceTank == true) then
 		-- enable
 		isTank = true
 	end
 
 	-- force healer role?
 	local isHealer = false
-	if (NS.db.profile.forceHealer == true) then
+	if (NS.charDB.profile.forceHealer == true) then
 		-- enable
 		isHealer = true
 	end
 
 	-- force dps role?
 	local isDPS = false
-	if (NS.db.profile.forceDPS == true) then
+	if (NS.charDB.profile.forceDPS == true) then
 		-- enable
 		isDPS = true
 	end
@@ -570,20 +568,113 @@ function NS.CommunityFlare_IsGroupLeader()
 	return false
 end
 
--- get current party leader
-function NS.CommunityFlare_GetPartyLeader()
-	-- process all sub group members
-	for i=1, GetNumSubgroupMembers() do 
-		-- is group leader?
-		if (UnitIsGroupLeader("party" .. i)) then 
-			local name, realm = UnitName("party" .. i)
-			if (realm and (realm ~= "")) then
-				-- add realm name
-				name = name .. "-" .. realm
+-- get party guid
+function NS.CommunityFlare_GetPartyGUID()
+	-- in group and not in raid?
+	if (IsInGroup() and not IsInRaid()) then
+		-- process all group members
+		for i=1, GetNumGroupMembers() do
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
 			end
 
-			-- leader found
-			return name
+			-- get group for player
+			local playerGUID = UnitGUID(unit)
+			if (playerGUID and (playerGUID ~= "")) then
+				-- get group for player
+				local partyGUID = SocialQueueGetGroupForPlayer(playerGUID)
+				if (partyGUID and (partyGUID ~= "")) then
+					-- return party guid
+					return partyGUID
+				end
+			end
+		end
+	end
+
+	-- has party GUID?
+	local partyGUID = "none"
+	if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
+		-- use party GUID
+		partyGUID = NS.CommFlare.CF.PartyGUID
+	end
+
+	-- return party guid
+	return partyGUID
+end
+
+-- get party unit
+function NS.CommunityFlare_GetPartyUnit(player)
+	-- in group and not in raid?
+	if (IsInGroup() and not IsInRaid()) then
+		-- force name-realm format
+		if (not strmatch(player, "-")) then
+			-- add realm name
+			player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
+		-- process all group members
+		for i=1, GetNumGroupMembers() do
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
+			end
+
+			-- get unit name / realm (if available)
+			local name, realm = UnitName(unit)
+			if (name and (name ~= "")) then
+				-- no realm name?
+				if (not realm or (realm == "")) then
+					-- get realm name
+					realm = NS.CommFlare.CF.PlayerServerName
+				end
+
+				-- matches?
+				name = strformat("%s-%s", name, realm)
+				if (player == name) then
+					-- return unit
+					return unit
+				end
+			end
+		end
+	end
+
+	-- failed
+	return nil
+end
+
+-- get current party leader
+function NS.CommunityFlare_GetPartyLeader()
+	-- in group and not in raid?
+	if (IsInGroup() and not IsInRaid()) then
+		-- process all group members
+		for i=1, GetNumGroupMembers() do
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
+			end
+
+			-- is group leader?
+			if (UnitIsGroupLeader(unit)) then 
+				-- get unit name / realm (if available)
+				local name, realm = UnitName(unit)
+				if (name and (name ~= "")) then
+					-- no realm name?
+					if (not realm or (realm == "")) then
+						-- get realm name
+						realm = NS.CommFlare.CF.PlayerServerName
+					end
+
+					-- leader found
+					return strformat("%s-%s", name, realm)
+				end
+			end
 		end
 	end
 
@@ -591,14 +682,24 @@ function NS.CommunityFlare_GetPartyLeader()
 	return NS.CommunityFlare_GetPlayerName("full")
 end
 
--- get current party guid
+-- get party guid
 function NS.CommunityFlare_GetPartyLeaderGUID()
-	-- process all sub group members
-	for i=1, GetNumSubgroupMembers() do 
-		-- is group leader?
-		if (UnitIsGroupLeader("party" .. i)) then
-			-- return guid
-			return UnitGUID("party" .. i)
+	-- in group and not in raid?
+	if (IsInGroup() and not IsInRaid()) then
+		-- process all group members
+		for i=1, GetNumGroupMembers() do 
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
+			end
+
+			-- is group leader?
+			if (UnitIsGroupLeader(unit)) then
+				-- return guid
+				return UnitGUID(unit)
+			end
 		end
 	end
 
@@ -608,22 +709,31 @@ end
 
 -- get party members
 function NS.CommunityFlare_GetPartyMembers()
-	-- process all group members
+	-- in group and not in raid?
 	local members = {}
-	for i=1, GetNumGroupMembers() do
-		-- get unit name
-		local unit = "party" .. i
-		local name, realm = UnitName(unit)
-		if (name and (name ~= "")) then
-			-- no realm name?
-			if (not realm or (realm == "")) then
-				-- get realm name
-				realm = NS.CommFlare.CF.PlayerServerName
+	if (IsInGroup() and not IsInRaid()) then
+		-- process all group members
+		for i=1, GetNumGroupMembers() do
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
 			end
 
-			-- add member
-			name = name .. "-" .. realm
-			members[name] = true
+			-- get unit name / realm (if available)
+			local name, realm = UnitName(unit)
+			if (name and (name ~= "")) then
+				-- no realm name?
+				if (not realm or (realm == "")) then
+					-- get realm name
+					realm = NS.CommFlare.CF.PlayerServerName
+				end
+
+				-- add member
+				name = strformat("%s-%s", name, realm)
+				members[name] = true
+			end
 		end
 	end
 
@@ -631,43 +741,14 @@ function NS.CommunityFlare_GetPartyMembers()
 	return members
 end
 
--- get party unit
-function NS.CommunityFlare_GetPartyUnit(player)
-	-- force name-realm format
-	if (not strmatch(player, "-")) then
-		-- add realm name
-		player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
-	end
-
-	-- process all group members
-	for i=1, GetNumGroupMembers() do
-		-- get unit name
-		local unit = "party" .. i
-		local name, realm = UnitName(unit)
-		if (name and (name ~= "")) then
-			-- no realm name?
-			if (not realm or (realm == "")) then
-				-- get realm name
-				realm = NS.CommFlare.CF.PlayerServerName
-			end
-
-			-- full name matches?
-			name = name .. "-" .. realm
-			if (player == name) then
-				-- return unit
-				return unit
-			end
-		end
-	end
-
-	-- failed
-	return nil
-end
-
 -- get party count
 function NS.CommunityFlare_GetPartyCount()
-	-- get group members
-	NS.CommFlare.CF.Count = GetNumGroupMembers()
+	-- in group and not in raid?
+	NS.CommFlare.CF.Count = 1
+	if (IsInGroup() and not IsInRaid()) then
+		-- get num group members
+		NS.CommFlare.CF.Count = GetNumGroupMembers()
+	end
 
 	-- no members? (solo)
 	if (NS.CommFlare.CF.Count == 0) then
@@ -681,13 +762,11 @@ end
 
 -- get total group count
 function NS.CommunityFlare_GetGroupCount()
-	-- get proper count
+	-- in group and not in raid?
 	NS.CommFlare.CF.Count = 1
-	if (IsInGroup()) then
-		if (not IsInRaid()) then
-			-- update count
-			NS.CommFlare.CF.Count = GetNumGroupMembers()
-		end
+	if (IsInGroup() and not IsInRaid()) then
+		-- get num group members
+		NS.CommFlare.CF.Count = GetNumGroupMembers()
 	end
 
 	-- no members? (solo)
@@ -702,17 +781,21 @@ end
 
 -- get group members
 function NS.CommunityFlare_GetGroupMembers()
-	-- are you grouped?
+	-- in group and not in raid?
 	local players = {}
-	if (IsInGroup()) then
-		-- are you in a raid?
-		if (not IsInRaid()) then
-			-- process all group members
-			for i=1, GetNumGroupMembers() do
-				-- get unit name
-				local unit = "party" .. i
-				local name, realm = UnitName(unit)
+	if (IsInGroup() and not IsInRaid()) then
+		-- process all group members
+		for i=1, GetNumGroupMembers() do
+			-- unit exists?
+			local unit = "party" .. i
+			if (not UnitExists(unit)) then
+				-- player
+				unit = "player"
+			end
 
+			-- get unit name / realm (if available)
+			local name, realm = UnitName(unit)
+			if (name and (name ~= "")) then
 				-- no realm name?
 				if (not realm or (realm == "")) then
 					-- get realm name
@@ -720,10 +803,12 @@ function NS.CommunityFlare_GetGroupMembers()
 				end
 
 				-- add party member
+				local player = strformat("%s-%s", name, realm)
 				players[i] = {
 					["guid"] = UnitGUID(unit),
 					["name"] = name,
 					["realm"] = realm,
+					["player"] = player,
 				}
 			end
 		end
@@ -741,19 +826,9 @@ end
 
 -- get member count
 function NS.CommunityFlare_GetMemberCount()
-	-- sanity check?
-	if (not NS.db.global) then
-		-- initialize
-		NS.db.global = {}
-	end
-	if (not NS.db.global.members) then
-		-- initialize
-		NS.db.global.members = {}
-	end
-
 	-- process all
 	local count = 0
-	for k,v in pairs(NS.db.global.members) do
+	for k,v in pairs(NS.globalDB.global.members) do
 		-- increase
 		count = count + 1
 	end
@@ -904,7 +979,7 @@ function NS.CommunityFlare_PopupBox(dlg, message)
 		-- report ID set?
 		local clubId = 0
 		showPopup = false
-		if (NS.db.profile.communityReportID and (NS.db.profile.communityReportID > 1)) then
+		if (NS.charDB.profile.communityReportID and (NS.charDB.profile.communityReportID > 1)) then
 			-- show
 			showPopup = true
 		end
@@ -946,9 +1021,9 @@ StaticPopupDialogs["CommunityFlare_Send_Community_Dialog"] = {
 	button2 = L["No"],
 	OnAccept = function(self, message)
 		-- report ID set?
-		if (NS.db.profile.communityReportID and (NS.db.profile.communityReportID > 1)) then
+		if (NS.charDB.profile.communityReportID and (NS.charDB.profile.communityReportID > 1)) then
 			-- club id found?
-			local clubId = NS.db.profile.communityReportID
+			local clubId = NS.charDB.profile.communityReportID
 			if (clubId > 0) then
 				local streamId = 1
 				local channelName = Chat_GetCommunitiesChannelName(clubId, streamId)
@@ -977,7 +1052,7 @@ StaticPopupDialogs["CommunityFlare_Kick_Dialog"] = {
 
 		-- community auto invite enabled?
 		local text = L["You've been removed from the party for being AFK."]
-		if (NS.db.profile.communityAutoInvite == true) then
+		if (NS.charDB.profile.communityAutoInvite == true) then
 			-- update text for info about being reinvited
 			text = strformat("%s %s", text, L["Whisper me INV and if a spot is still available, you'll be readded to the party."])
 		end

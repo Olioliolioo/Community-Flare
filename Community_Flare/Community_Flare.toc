@@ -1,9 +1,10 @@
-## Interface: 100200
+## Interface: 100205
 ## Title: Community Flare
-## Version: v1.08
-## X-Build: 108001
+## Version: v1.09
+## X-Build: 109001
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
+## SavedVariablesPerCharacter: CommFlareCharDB
 ## OptionalDeps: Ace3
 ## IconTexture: Interface\AddOns\Community_Flare\Media\icon.tga
 ## AddonCompartmentFunc: CommunityFlare_AddonCompartmentOnClick

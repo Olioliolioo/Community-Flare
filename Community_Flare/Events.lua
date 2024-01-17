@@ -153,16 +153,16 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
 				end
 
-				-- has party GUID?
-				local partyGUID = "none"
-				local leaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
-				if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
-					-- use party GUID
-					partyGUID = NS.CommFlare.CF.PartyGUID
+				-- has leader GUID?
+				local leaderGUID = NS.CommFlare.CF.LeaderGUID
+				if (not leaderGUID) then
+					-- use player
+					leaderGUID = UnitGUID("player")
 				end
 
 				-- accepted queue?
 				local text = ""
+				local partyGUID = NS.CommunityFlare_GetPartyGUID()
 				if (acceptFlag == true) then
 					-- mercenary?
 					if (NS.CommFlare.CF.LocalQueues[index].mercenary == true) then
@@ -191,7 +191,7 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					end
 
 					-- community reporter enabled?
-					if (NS.db.profile.communityReporter == true) then
+					if (NS.charDB.profile.communityReporter == true) then
 						-- send to community?
 						NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
 					end
@@ -256,7 +256,7 @@ end
 -- process main menu micro button on mouse down
 function NS.CommunityFlare_MainMenuMicroButton_OnMouseDown()
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- inside pvp content?
 		local isArena = PvPIsArena()
 		local isBattleground = PvPIsBattleground()
@@ -273,7 +273,7 @@ end
 -- process game menu on show
 function NS.CommunityFlare_GameMenuFrame_OnShow()
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- inside pvp content?
 		local isArena = PvPIsArena()
 		local isBattleground = PvPIsBattleground()
@@ -296,7 +296,7 @@ end
 -- process game menu on hide
 function NS.CommunityFlare_GameMenuFrame_OnHide()
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- disabled
 		NS.CommFlare.CF.AllowMainMenu = false
 	end
@@ -323,7 +323,7 @@ end
 -- process character micro button clicked
 function NS.CommFlare:CharacterMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowCharacterFrame = true
 	end
@@ -341,7 +341,7 @@ end
 -- process character toggle
 function NS.CommFlare:ToggleCharacter(tab, onlyShow)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not shown?
 		local isShown = CharacterFrame:IsShown()
 		if (isShown == false) then
@@ -371,7 +371,7 @@ end
 -- process spellbook micro button clicked
 function NS.CommFlare:SpellbookMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowSpellBookFrame = true
 	end
@@ -389,7 +389,7 @@ end
 -- process spellbook toggle
 function NS.CommFlare:ToggleSpellBook(bookType)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not shown?
 		local isShown = SpellBookFrame:IsShown()
 		if (isShown == false) then
@@ -419,7 +419,7 @@ end
 -- process talent micro button clicked
 function NS.CommFlare:TalentMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowTalentFrame = true
 	end
@@ -437,7 +437,7 @@ end
 -- process talent toggle
 function NS.CommFlare:ToggleTalentFrame(suggestedTab, inspectUnit)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
 		if (not ClassTalentFrame) then
 			-- load talent framework
@@ -473,7 +473,7 @@ end
 -- process achievement micro button clicked
 function NS.CommFlare:AchievementMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowAchievementFrame = true
 	end
@@ -491,7 +491,7 @@ end
 -- process achievement toggle
 function NS.CommFlare:ToggleAchievementFrame(stats)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
 		if (not AchievementFrame) then
 			-- load achievement framework
@@ -527,7 +527,7 @@ end
 -- process guild micro button clicked
 function NS.CommFlare:GuildMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowGuildFrame = true
 	end
@@ -545,7 +545,7 @@ end
 -- process guild toggle
 function NS.CommFlare:ToggleGuildFrame()
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
 		if (not CommunitiesFrame) then
 			-- load communities framework
@@ -581,7 +581,7 @@ end
 -- process group finder micro button clicked
 function NS.CommFlare:LFDMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowGroupFinderFrame = true
 	end
@@ -599,7 +599,7 @@ end
 -- process group finder toggle
 function NS.CommFlare:PVEFrame_ToggleFrame(sidePanelName, selection)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not shown?
 		local isShown = PVEFrame:IsShown()
 		if (isShown == false) then
@@ -629,7 +629,7 @@ end
 -- process adventure guide micro button clicked
 function NS.CommFlare:EJMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowAdvGuideFrame = true
 	end
@@ -647,7 +647,7 @@ end
 -- process adventure guide toggle
 function NS.CommFlare:ToggleEncounterJournal(tabIndex)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
 		if (not EncounterJournal) then
 			-- load adventure guide framework
@@ -683,7 +683,7 @@ end
 -- process collections micro button clicked
 function NS.CommFlare:CollectionsMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
 		NS.CommFlare.CF.AllowCollectionsFrame = true
 	end
@@ -701,7 +701,7 @@ end
 -- process collections toggle
 function NS.CommFlare:ToggleCollectionsJournal(tabIndex)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
 		if (not CollectionsJournal) then
 			-- load collections framework
@@ -737,7 +737,7 @@ end
 -- process friends toggle
 function NS.CommFlare:ToggleFriendsFrame(tab)
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not shown?
 		local isShown = FriendsFrame:IsShown()
 		if (isShown == false) then
@@ -826,7 +826,7 @@ function NS.CommunityFlare_SetupHooks()
 	hooksecurefunc("RejectProposal", NS.CommunityFlare_RejectProposal)
 
 	-- block game menu hot keys enabled?
-	if (NS.db.profile.blockGameMenuHotKeys == true) then
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- enable block game menu hooks
 		NS.CommunityFlare_Setup_BlockGameMenuHooks()
 	end
@@ -855,6 +855,17 @@ function NS.CommFlare:ADDON_LOADED(msg, ...)
 
 		-- hook queue button mouse over
 		HonorFrameQueueButton:HookScript("OnEnter", NS.CommunityFlare_HonorFrameQueueButton_OnEnter)
+	end
+end
+
+-- process Battle.NET chat message addon
+function NS.CommFlare:BN_CHAT_MSG_ADDON(msg, ...)
+	local prefix, text, channel, senderID = ...
+
+	-- community flare?
+	if (prefix == "CommFlare") then
+		-- process battle net command
+		NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 	end
 end
 
@@ -990,7 +1001,7 @@ function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 	-- notify system has been enabled?
 	elseif (text == PVP_REPORT_AFK_SYSTEM_ENABLED) then
 		-- restrict pings?
-		if (NS.db.profile.restrictPings == true) then
+		if (NS.charDB.profile.restrictPings == true) then
 			-- does player have raid leadership or assistant?
 			NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
 			if (NS.CommFlare.CF.PlayerRank > 0) then
@@ -1001,6 +1012,8 @@ function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 
 		-- display battleground setup
 		NS.CommFlare.CF.MatchStatus = 2
+		NS.CommFlare.CF.MatchEndTime = 0
+		NS.CommFlare.CF.MatchEndDate = ""
 		NS.CommFlare.CF.MatchStartDate = date()
 		NS.CommFlare.CF.MatchStartTime = time()
 		NS.CommFlare.CF.MatchStartLogged = false
@@ -1131,14 +1144,14 @@ function NS.CommFlare:CLUB_MEMBER_ADDED(msg, ...)
 		-- add club member
 		NS.CommunityFlare_ClubMemberAdded(clubId, memberId)
 	-- main community?
-	elseif (NS.db.profile.communityMain == clubId) then
+	elseif (NS.charDB.profile.communityMain == clubId) then
 		-- add club member
 		NS.CommunityFlare_ClubMemberAdded(clubId, memberId)
 	-- has community list?
-	elseif (NS.db.profile.communityList and (next(NS.db.profile.communityList) ~= nil)) then
+	elseif (NS.charDB.profile.communityList and (next(NS.charDB.profile.communityList) ~= nil)) then
 		-- process all lists
 		local count = 0
-		for k,_ in pairs(NS.db.profile.communityList) do
+		for k,_ in pairs(NS.charDB.profile.communityList) do
 			-- matches?
 			if (clubId == k) then
 				-- increase
@@ -1189,7 +1202,7 @@ function NS.CommFlare:CLUB_MEMBER_REMOVED(msg, ...)
 	local clubId, memberId = ...
 
 	-- main community?
-	if (NS.db.profile.communityMain == clubId) then
+	if (NS.charDB.profile.communityMain == clubId) then
 		-- remove club member
 		NS.CommunityFlare_ClubMemberRemoved(clubId, memberId)
 	end
@@ -1314,14 +1327,14 @@ function NS.CommFlare:GROUP_INVITE_CONFIRMATION(msg)
 						NS.CommFlare.CF.AutoInvite = false
 						if (selfRelationship == "bnfriend") then
 							-- battle net auto invite enabled?
-							if (NS.db.profile.bnetAutoInvite == true) then
+							if (NS.charDB.profile.bnetAutoInvite == true) then
 								-- auto invite enabled
 								NS.CommFlare.CF.AutoInvite = true
 							end
 						end
 
 						-- community auto invite enabled?
-						if ((NS.CommFlare.CF.AutoInvite == false) and (NS.db.profile.communityAutoInvite == true)) then
+						if ((NS.CommFlare.CF.AutoInvite == false) and (NS.charDB.profile.communityAutoInvite == true)) then
 							-- is sender a community member?
 							NS.CommFlare.CF.AutoInvite = NS.CommunityFlare_IsCommunityMember(player)
 						end
@@ -1370,7 +1383,7 @@ function NS.CommFlare:GROUP_LEFT(msg, ...)
 	local category, partyGUID = ...
 
 	-- disable community party leader
-	NS.db.profile.communityPartyLeader = false
+	NS.charDB.profile.communityPartyLeader = false
 
 	-- delete partyGUID
 	NS.CommFlare.CF.PartyGUID = nil
@@ -1431,7 +1444,7 @@ function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
 			if (NS.CommunityFlare_IsGroupLeader() == true) then
 				-- community member?
 				local message = "GROUP_ROSTER_UPDATE"
-				if (NS.db.profile.communityMain > 1) then
+				if (NS.charDB.profile.communityMain > 1) then
 					-- append YES
 					message = message .. ":YES"
 				else
@@ -1451,7 +1464,7 @@ function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
 					count = #players + count
 					if ((NS.CommFlare.CF.PreviousCount > 0) and (NS.CommFlare.CF.PreviousCount < 5) and (count == 5)) then
 						-- community reporter enabled?
-						if (NS.db.profile.communityReporter == true) then
+						if (NS.charDB.profile.communityReporter == true) then
 							-- send to community?
 							text = strformat("%s %s!", text, L["Full Now"])
 							NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
@@ -1483,7 +1496,7 @@ function NS.CommFlare:INITIAL_CLUBS_LOADED(msg)
 	-- initial login?
 	if (NS.CommFlare.CF.InitialLogin == false) then
 		-- should readd community channels?
-		if (NS.db.profile.alwaysReaddChannels == true) then
+		if (NS.charDB.profile.alwaysReaddChannels == true) then
 			-- readd community channels
 			TimerAfter(10, NS.CommunityFlare_ReaddChannelsInitialLoad)
 		end
@@ -1635,19 +1648,19 @@ function NS.CommFlare:LFG_ROLE_CHECK_SHOW(msg, ...)
 			NS.CommFlare.CF.AutoQueue = false
 			if (NS.CommFlare.CF.AutoQueueable == true) then
 				-- party leader is community?
-				if (NS.db.profile.communityPartyLeader == true) then
+				if (NS.charDB.profile.communityPartyLeader == true) then
 					-- auto queue enabled
 					NS.CommFlare.CF.AutoQueue = true
 				end
 
 				-- always auto queue?
-				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.alwaysAutoQueue == true)) then
+				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.alwaysAutoQueue == true)) then
 					-- auto queue enabled
 					NS.CommFlare.CF.AutoQueue = true
 				end
 
 				-- battle net auto queue enabled?
-				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.bnetAutoQueue == true)) then
+				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.bnetAutoQueue == true)) then
 					local guid = NS.CommunityFlare_GetPartyLeaderGUID()
 					local info = BattleNetGetAccountInfoByGUID(guid)
 					if (info and (info.isFriend == true)) then
@@ -1657,7 +1670,7 @@ function NS.CommFlare:LFG_ROLE_CHECK_SHOW(msg, ...)
 				end
 
 				-- community auto queue?
-				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.communityAutoQueue == true)) then
+				if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.communityAutoQueue == true)) then
 					-- is party leader a community member?
 					local leader = NS.CommunityFlare_GetPartyLeader()
 					NS.CommFlare.CF.AutoQueue = NS.CommunityFlare_IsCommunityMember(leader)
@@ -1710,7 +1723,7 @@ function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 	if (NS.CommFlare.CF.HasAura == false) then
 		-- battle net auto invite enabled?
 		NS.CommFlare.CF.AutoInvite = false
-		if (NS.db.profile.bnetAutoInvite == true) then
+		if (NS.charDB.profile.bnetAutoInvite == true) then
 			local info = BattleNetGetAccountInfoByGUID(guid)
 			if (info and (info.isFriend == true)) then
 				-- auto invite enabled
@@ -1719,7 +1732,7 @@ function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 		end
 
 		-- community auto invite enabled?
-		if ((NS.CommFlare.CF.AutoInvite == false) and (NS.db.profile.communityAutoInvite == true)) then
+		if ((NS.CommFlare.CF.AutoInvite == false) and (NS.charDB.profile.communityAutoInvite == true)) then
 			-- is sender a community member?
 			NS.CommFlare.CF.AutoInvite = NS.CommunityFlare_IsCommunityMember(sender)
 		end
@@ -1729,19 +1742,19 @@ function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 			-- lfg invite popup shown?
 			if (LFGInvitePopup:IsShown()) then
 				-- force tank?
-				if (NS.db.profile.forceTank == true) then
+				if (NS.charDB.profile.forceTank == true) then
 					-- click tank button
 					LFGInvitePopupRoleButtonTank:Click()
 				end
 
 				-- force healer?
-				if (NS.db.profile.forceHealer == true) then
+				if (NS.charDB.profile.forceHealer == true) then
 					-- click healer button
 					LFGInvitePopupRoleButtonHealer:Click()
 				end
 
 				-- force healer?
-				if (NS.db.profile.forceDPS == true) then
+				if (NS.charDB.profile.forceDPS == true) then
 					-- click dps button
 					LFGInvitePopupRoleButtonDPS:Click()
 				end
@@ -1769,8 +1782,11 @@ end
 
 -- process party leader changed
 function NS.CommFlare:PARTY_LEADER_CHANGED(msg)
+	-- update leader GUID
+	NS.CommFlare.CF.LeaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
+
 	-- notify enabled?
-	if (NS.db.profile.partyLeaderNotify > 1) then
+	if (NS.charDB.profile.partyLeaderNotify > 1) then
 		-- are you in a party?
 		if (IsInGroup() and not IsInRaid()) then
 			-- has more than 1 member?
@@ -1798,6 +1814,16 @@ end
 function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 	local isInitialLogin, isReloadingUi = ...
 
+	-- has old settings?
+	if (NS.globalDB.profile) then
+		-- process all values
+		for k,v in pairs(NS.globalDB.profile) do
+			-- save per character
+			NS.charDB.profile[k] = NS.globalDB.profile[k]
+			NS.globalDB.profile[k] = nil
+		end
+	end
+
 	-- setup stuff
 	NS.CommFlare.CF.PlayerServerName = strgsub(GetRealmName(), "%s+", "")
 
@@ -1808,16 +1834,10 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		local major, minor = strsplit(".", version)
 		print(strformat("%s: %s", NS.CommunityFlare_Title, NS.CommunityFlare_Version))
 
-		-- load / initialize stuff
-		NS.db.global = NS.db.global or {}
-		NS.db.global.members = NS.db.global.members or {}
-		NS.db.global.matchLogList = NS.db.global.matchLogList or {}
-		NS.db.profile.communityList = NS.db.profile.communityList or {}
-
 		-- remove unused stuff
-		NS.db.profile.communities = nil
-		NS.db.profile.matchLogList = nil
-		NS.db.profile.communityMainName = nil
+		NS.charDB.profile.communities = nil
+		NS.charDB.profile.matchLogList = nil
+		NS.charDB.profile.communityMainName = nil
 
 		-- add chat whisper filtering
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", NS.CommunityFlare_Chat_Whisper_Filter)
@@ -1827,15 +1847,15 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", NS.CommunityFlare_Chat_Whisper_Filter)
 
 		-- has main community?
-		if (NS.db.profile.communityMain > 1) then
+		if (NS.charDB.profile.communityMain > 1) then
 			-- force enabled
-			NS.db.profile.communityLeadersList[NS.db.profile.communityMain] = true
+			NS.charDB.profile.communityLeadersList[NS.charDB.profile.communityMain] = true
 		end
 
 		-- fix setting
-		if (NS.db.profile.communityReportID == 0) then
+		if (NS.charDB.profile.communityReportID == 0) then
 			-- set default report ID
-			NS.db.profile.communityReportID = NS.db.profile.communityMain
+			NS.charDB.profile.communityReportID = NS.charDB.profile.communityMain
 		end
 
 		-- process queue stuff
@@ -1850,7 +1870,7 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 			NS.CommFlare.CF.Reloaded = false
 
 			-- disable community party leader
-			NS.db.profile.communityPartyLeader = false
+			NS.charDB.profile.communityPartyLeader = false
 		-- reloading?
 		elseif (isReloadingUi == true) then
 			-- reloaded
@@ -1927,7 +1947,7 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 	local winner, duration = ...
 
 	-- enabled vehicle turn speed?
-	if (NS.db.profile.adjustVehicleTurnSpeed > 0) then
+	if (NS.charDB.profile.adjustVehicleTurnSpeed > 0) then
 		-- reset default speed
 		NS.CommFlare.CF.TurnSpeed = GetCVarDefault("TurnSpeed")
 		SetCVar("TurnSpeed", NS.CommFlare.CF.TurnSpeed)
@@ -1937,6 +1957,8 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 	NS.CommFlare.CF.LeftTime = 0
 	NS.CommFlare.CF.EnteredTime = 0
 	NS.CommFlare.CF.MatchStatus = 3
+	NS.CommFlare.CF.MatchEndDate = date()
+	NS.CommFlare.CF.MatchEndTime = time()
 	NS.CommFlare.CF.Winner = GetBattlefieldWinner()
 	NS.CommFlare.CF.PlayerFaction = UnitFactionGroup("player")
 	NS.CommFlare.CF.PlayerInfo = PvPGetScoreInfoByPlayerGuid(UnitGUID("player"))
@@ -1948,35 +1970,42 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		NS.CommunityFlare_Update_Battleground_Stuff(true)
 		NS.CommunityFlare_Update_Member_Statistics("completed")
 		NS.CommunityFlare_Match_Started_Log_Roster()
+	end
 
-		-- won the match?
-		if (NS.CommFlare.CF.PlayerInfo.faction == NS.CommFlare.CF.Winner) then
-			-- victory
-			status = "Victory"
-		else
-			-- victory
-			status = "Loss"
+
+	-- get MapID
+	NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
+	if (NS.CommFlare.CF.MapID) then
+		-- get map info
+		NS.CommFlare.CF.MapInfo = MapGetMapInfo(NS.CommFlare.CF.MapID)
+		if (NS.CommFlare.CF.MapInfo and NS.CommFlare.CF.MapInfo.name) then
+			-- tracked pvp?
+			local mapName = NS.CommFlare.CF.MapInfo.name
+			local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
+			if (isTracked == true) then
+				-- won the match?
+				if (NS.CommFlare.CF.PlayerInfo.faction == NS.CommFlare.CF.Winner) then
+					-- victory
+					status = "Victory"
+				else
+					-- victory
+					status = "Loss"
+				end
+
+				-- has leader GUID?
+				local leaderGUID = NS.CommFlare.CF.LeaderGUID
+				if (not leaderGUID) then
+					-- use player
+					leaderGUID = UnitGUID("player")
+				end
+
+				-- push data
+				local timestamp = time()
+				local partyGUID = NS.CommunityFlare_GetPartyGUID()
+				local guids = strformat("%s,%s", leaderGUID, partyGUID)
+				NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Finished@%s,%s@%d@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, status, timestamp, NS.CommFlare.CF.CommCount, guids))
+			end
 		end
-
-		-- has party GUID?
-		local partyGUID = "none"
-		local leaderGUID = NS.CommunityFlare_GetPartyLeaderGUID()
-		if (NS.CommFlare.CF.PartyGUID and (NS.CommFlare.CF.PartyGUID ~= "")) then
-			-- use party GUID
-			partyGUID = NS.CommFlare.CF.PartyGUID
-		end
-
-		-- get MapID
-		NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
-		if (NS.CommFlare.CF.MapID) then
-			-- get map info
-			NS.CommFlare.CF.MapInfo = MapGetMapInfo(NS.CommFlare.CF.MapID)
-		end
-
-		-- push data
-		local timestamp = time()
-		local guids = strformat("%s,%s", leaderGUID, partyGUID)
-		NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Finished@%s,%s@%d@%d@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, NS.CommFlare.CF.MapInfo.name, status, timestamp, NS.CommFlare.CF.CommCount, guids))
 	end
 
 	-- report to anyone?
@@ -2034,11 +2063,11 @@ function NS.CommFlare:QUEST_DETAIL(msg, ...)
 			if (PvPIsBattleground() == true) then
 				-- block all shared quests?
 				local decline = false
-				if (NS.db.profile.blockSharedQuests == 3) then
+				if (NS.charDB.profile.blockSharedQuests == 3) then
 					-- always decline
 					decline = true
 				-- block irrelevant quests?
-				elseif (NS.db.profile.blockSharedQuests == 2) then
+				elseif (NS.charDB.profile.blockSharedQuests == 2) then
 					-- get MapID
 					NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
 					if (NS.CommFlare.CF.MapID and (NS.CommFlare.CF.MapID > 0)) then
@@ -2165,19 +2194,19 @@ function NS.CommFlare:READY_CHECK(msg, ...)
 	NS.CommFlare.CF.AutoQueue = false
 	if (NS.CommFlare.CF.AutoQueueable == true) then
 		-- party leader is community?
-		if (NS.db.profile.communityPartyLeader == true) then
+		if (NS.charDB.profile.communityPartyLeader == true) then
 			-- auto queue enabled
 			NS.CommFlare.CF.AutoQueue = true
 		end
 
 		-- always auto queue?
-		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.alwaysAutoQueue == true)) then
+		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.alwaysAutoQueue == true)) then
 			-- auto queue enabled
 			NS.CommFlare.CF.AutoQueue = true
 		end
 
 		-- battle net auto queue enabled?
-		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.bnetAutoQueue == true)) then
+		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.bnetAutoQueue == true)) then
 			local guid = NS.CommunityFlare_GetPartyLeaderGUID()
 			local info = BattleNetGetAccountInfoByGUID(guid)
 			if (info and (info.isFriend == true)) then
@@ -2187,7 +2216,7 @@ function NS.CommFlare:READY_CHECK(msg, ...)
 		end
 
 		-- community auto queue?
-		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.db.profile.communityAutoQueue == true)) then
+		if ((NS.CommFlare.CF.AutoQueue == false) and (NS.charDB.profile.communityAutoQueue == true)) then
 			-- is sender a community member?
 			NS.CommFlare.CF.AutoQueue = NS.CommunityFlare_IsCommunityMember(sender)
 		end
@@ -2258,7 +2287,7 @@ function NS.CommFlare:READY_CHECK_FINISHED(msg, ...)
 			-- is everyone ready?
 			if (isEveryoneReady == true) then
 				-- community reporter enabled?
-				if (NS.db.profile.communityReporter == true) then
+				if (NS.charDB.profile.communityReporter == true) then
 					-- are you group leader?
 					if (NS.CommunityFlare_IsGroupLeader() == true) then
 						-- alliance faction?
@@ -2286,7 +2315,7 @@ function NS.CommFlare:READY_CHECK_FINISHED(msg, ...)
 						-- check if group has room for more
 						if (NS.CommFlare.CF.Count < 5) then
 							-- community auto invite enabled
-							if (NS.db.profile.communityAutoInvite == true) then
+							if (NS.charDB.profile.communityAutoInvite == true) then
 								-- update text
 								text = strformat("%s (%s)", text, L["For auto invite, whisper me INV"])
 							end
@@ -2373,16 +2402,16 @@ function NS.CommFlare:UNIT_ENTERED_VEHICLE(msg, ...)
 		-- inside battleground?
 		if (PvPIsBattleground() == true) then
 			-- sanity check
-			if ((NS.db.profile.adjustVehicleTurnSpeed < 1) or (NS.db.profile.adjustVehicleTurnSpeed > 3)) then
+			if ((NS.charDB.profile.adjustVehicleTurnSpeed < 1) or (NS.charDB.profile.adjustVehicleTurnSpeed > 3)) then
 				-- force default
-				NS.db.profile.adjustVehicleTurnSpeed = 1
+				NS.charDB.profile.adjustVehicleTurnSpeed = 1
 			end
 
 			-- save old speed
 			NS.CommFlare.CF.TurnSpeed = GetCVar("TurnSpeed")
 
 			-- set new speed
-			local speed = NS.db.profile.adjustVehicleTurnSpeed * 180
+			local speed = NS.charDB.profile.adjustVehicleTurnSpeed * 180
 			SetCVar("TurnSpeed", speed)
 		end
 	end
@@ -2397,7 +2426,7 @@ function NS.CommFlare:UNIT_EXITED_VEHICLE(msg, ...)
 		-- inside battleground?
 		if (PvPIsBattleground() == true) then
 			-- default?
-			if (NS.db.profile.adjustVehicleTurnSpeed == 1) then
+			if (NS.charDB.profile.adjustVehicleTurnSpeed == 1) then
 				-- reset default speed?
 				NS.CommFlare.CF.TurnSpeed = GetCVarDefault("TurnSpeed")
 			end
@@ -2415,20 +2444,20 @@ function NS.CommFlare:UNIT_SPELLCAST_START(msg, ...)
 	-- only check player
 	if (unitTarget == "player") then
 		-- has warning setting enabled?
-		if (NS.db.profile.warningLeavingBG > 1) then
+		if (NS.charDB.profile.warningLeavingBG > 1) then
 			-- inside battleground?
 			if (PvPIsBattleground() == true) then
 				-- hearthstone?
 				if (NS.HearthStoneSpells[spellID]) then
 					-- raid warning?
-					if (NS.db.profile.warningLeavingBG == 2) then
+					if (NS.charDB.profile.warningLeavingBG == 2) then
 						-- issue local raid warning (with raid warning audio sound)
 						RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", L["Are you really sure you want to hearthstone?"])
 					end
 				-- teleporting?
 				elseif (NS.TeleportSpells[spellID]) then
 					-- raid warning?
-					if (NS.db.profile.warningLeavingBG == 2) then
+					if (NS.charDB.profile.warningLeavingBG == 2) then
 						-- issue local raid warning (with raid warning audio sound)
 						RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", L["Are you really sure you want to teleport?"])
 					end
@@ -2455,6 +2484,7 @@ end
 function NS.CommFlare:OnEnable()
 	-- register events
 	self:RegisterEvent("ADDON_LOADED")
+	self:RegisterEvent("BN_CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_BN_WHISPER")
 	self:RegisterEvent("CHAT_MSG_PARTY")
@@ -2506,6 +2536,7 @@ end
 function NS.CommFlare:OnDisable()
 	-- unregister events
 	self:UnregisterEvent("ADDON_LOADED")
+	self:UnregisterEvent("BN_CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_BN_WHISPER")
 	self:UnregisterEvent("CHAT_MSG_PARTY")
@@ -2567,7 +2598,7 @@ function NS.CommFlare:Community_Flare_OnCommReceived(prefix, message, distributi
 					-- community member?
 					if (message:find("YES")) then
 						-- enable community party leader
-						NS.db.profile.communityPartyLeader = true
+						NS.charDB.profile.communityPartyLeader = true
 					end
 				end
 			-- ready check?
@@ -2625,7 +2656,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 	elseif (lower == "findold") then
 		-- check for older members
 		print(L["Checking for older members"])
-		NS.CommunityFlare_FindExCommunityMembers(NS.db.profile.communityMain)
+		NS.CommunityFlare_FindExCommunityMembers(NS.charDB.profile.communityMain)
 	elseif (lower == "leaders") then
 		-- rebuild leaders
 		NS.CommunityFlare_RebuildCommunityLeaders()
@@ -2662,7 +2693,7 @@ function NS.CommFlare:Community_Flare_SlashCommand(input)
 		end
 	elseif (lower == "reset") then
 		-- reset members database
-		NS.db.global.members = {}
+		NS.globalDB.global.members = {}
 		print(L["Cleared members database!"])
 	elseif (lower == "usage") then
 		-- display usages
