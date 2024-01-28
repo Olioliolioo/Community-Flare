@@ -11,7 +11,44 @@ end
 -- localize stuff
 local _G                                        = _G
 local date                                      = _G.date
+local time                                      = _G.time
+local type                                      = _G.type
+local tonumber                                  = _G.tonumber
+local strgsub                                   = _G.string.gsub
 local strmatch                                  = _G.string.match
+
+-- clean up history
+function NS.CommunityFlare_CleanUpHistory()
+	-- process all
+	local MON = { Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6, Jul = 7, Aug = 8, Sep = 9, Oct = 10, Nov = 11, Dec = 12 }
+	for k,v in pairs(NS.globalDB.global.history) do
+		-- last seen = old string format?
+		if (v.lastseen and (type(v.lastseen) == "string")) then
+			-- calculate timestamp
+			local str = strgsub(v.lastseen, "  ", " ")
+			local pattern = "(%a+) (%a+) (%d+) (%d+):(%d+):(%d+) (%d+)"
+			local _, month, day, hour, min, sec, year = str:match(pattern)
+			month = MON[month]
+			local timestamp = time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
+
+			-- update
+			NS.globalDB.global.history[k].lastseen = timestamp
+		end
+
+		-- last grouped = old string format?
+		if (v.lastgrouped and (type(v.lastgrouped) == "string")) then
+			-- calculate timestamp
+			local str = strgsub(v.lastgrouped, "  ", " ")
+			local pattern = "(%a+) (%a+) (%d+) (%d+):(%d+):(%d+) (%d+)"
+			local _, month, day, hour, min, sec, year = str:match(pattern)
+			month = MON[month]
+			local timestamp = time({day=day,month=month,year=year,hour=hour,min=min,sec=sec})
+
+			-- update
+			NS.globalDB.global.history[k].lastgrouped = timestamp
+		end
+	end
+end
 
 -- get history
 function NS.CommunityFlare_History_Get(player)
@@ -96,7 +133,7 @@ function NS.CommunityFlare_History_Update_Last_Grouped(player)
 	end
 
 	-- save last grouped
-	NS.globalDB.global.history[player].lastgrouped = date()
+	NS.globalDB.global.history[player].lastgrouped = time()
 	return true
 end
 
@@ -115,100 +152,6 @@ function NS.CommunityFlare_History_Update_Last_Seen(player)
 	end
 
 	-- update last seen
-	NS.globalDB.global.history[player].lastseen = date()
+	NS.globalDB.global.history[player].lastseen = time()
 	return true
 end
-
--- show history
-NS.player_check = nil
-function NS.CommunityFlare_Show_History(...)
-	-- find member
-	local member = NS.CommunityFlare_GetCommunityMember(NS.player_check)
-	if (member) then
-		-- find history
-		print(strformat("%s: %s", NS.CommunityFlare_Title, member.name))
-		local history = NS.CommunityFlare_History_Get(NS.player_check)
-		if (history) then
-			-- has last seend?
-			if (history and history.lastseen) then
-				-- show last seen time
-				print(strformat("%s: %s %s", L["Last Seen"], L["Around"], history.lastseen))
-			else
-				-- not seen recently
-				print(strformat("%s: %s", L["Last Seen"], L["Not seen recently."]))
-			end
-
-			-- has last grouped?
-			if (history.lastgrouped) then
-				-- display last grouped
-				print(strformat("%s: %s", L["Last Grouped"], history.lastgrouped))
-			end
-
-			-- has grouped matches?
-			if (history.groupedmatches) then
-				-- display grouped matches count
-				print(strformat("%s: %d", L["Grouped Match Count"], history.groupedmatches))
-			end
-
-			-- has completed matches?
-			if (history.completedmatches) then
-				-- display completed matches count
-				print(strformat("%s: %d", L["Completed Match Count"], history.completedmatches))
-			end
-		end
-	else
-		-- not in database yet
-		print(strformat("%s: %s %s", L["Last Seen"], NS.player_check, L["is NOT in the Database."]))
-	end
-end
-
--- last seen drop down options
-NS.CommunityFlare_DropDownOptions_LastSeen = {
-	{
-		text = L["Last Seen Around?"],
-		func = NS.CommunityFlare_Show_History,
-	},
-}
-
--- the callback function for when the dropdown event occurs
-function NS.CommunityFlare_OnEvent(dropdown, event, options)
-	-- has which menu?
-	if (dropdown.which) then
-		-- community member?
-		if (dropdown.which == "COMMUNITIES_WOW_MEMBER") then
-			-- found club info?
-			NS.player_check = nil
-			local club = dropdown.clubInfo
-			if (club and (club.clubType == Enum.ClubType.Character)) then
-				local name = dropdown.name
-				local server = dropdown.server
-				if (server == nil) then
-					server = NS.CommFlare.CF.PlayerServerName
-				end
-
-				-- save player check
-				NS.player_check = name .. "-" .. server
-
-				-- showing?
-				if (event == "OnShow") then
-					-- add the dropdown options to the options table
-					for i = 1, #NS.CommunityFlare_DropDownOptions_LastSeen do
-						options[i] = NS.CommunityFlare_DropDownOptions_LastSeen[i]
-					end
-
-					-- we have added options to the dropdown menu
-					return true
-				-- hiding?
-				elseif (event == "OnHide") then
-					-- when hiding we can remove our dropdown options from the options table
-					for i = #options, 1, -1 do
-						options[i] = nil
-					end
-				end
-			end
-		end
-	end
-end
-
--- registers our callback function for the show and hide events for the first dropdown level only
-NS.Libs.LibDropDownExtension:RegisterEvent("OnShow OnHide", NS.CommunityFlare_OnEvent, 1)

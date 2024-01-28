@@ -281,54 +281,120 @@ end
 -- get current roster list
 function NS.CommunityFlare_Battlefield_Get_Current_Roster(type)
 	-- inside battleground?
+	local roster = {}
 	if (PvPIsBattleground() == true) then
+		-- horde only?
+		if (type:find("Horde")) then
+			-- get horde roster
+			type = 0
+		-- alliance only?
+		elseif (type:find("Alliance")) then
+			-- get alliance roster
+			type = 1
+		-- all roster
+		else
+			-- unset
+			type = nil
+		end
+
 		-- process all scores
-		local roster = {}
 		SetBattlefieldScoreFaction()
 		for i=1, GetNumBattlefieldScores() do
 			local info = PvPGetScoreInfo(i)
 			if (info) then
-				-- force name-realm format
-				local player = info.name
-				if (not strmatch(player, "-")) then
-					-- add realm name
-					player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
-				end
-
 				-- should log player?
-				local logPlayer = false
-				if (not type) then
-					-- log player
-					logPlayer = true
-				-- faction specific?
-				elseif ((type == 0) or (type == 1)) then
-					-- faction matches?
-					if (info.faction == type) then
-						-- log player
-						logPlayer = true
+				if (not type or (info.faction == type)) then
+					-- force name-realm format
+					local player = info.name
+					if (not strmatch(player, "-")) then
+						-- add realm name
+						player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
 					end
-				end
 
-				-- log player?
-				if (logPlayer == true) then
 					-- insert
 					tinsert(roster, player)
 				end
 			end
 		end
 	
-		-- has roster?
-		if (#roster > 0) then
-			-- sort
-			tsort(roster)
-
-			-- return roster
-			return roster
+		-- setup type
+		if (type == 0) then
+			-- horde
+			type = "Horde"
+		elseif (type == 1) then
+			-- alliance
+			type = "Alliance"
+		else
+			-- full
+			type = "Full"
 		end
+	else
+		-- process all
+		for k,v in pairs(NS.CommFlare.CF.SocialQueues) do
+			-- process queues
+			local found = false
+			for k2,v2 in ipairs(v.queues) do
+				-- has queue data?
+				local mapName = nil
+				if (v2.queueData and v2.queueData.mapName) then
+					-- save map name
+					mapName = v2.queueData.mapName
+				-- local queue?
+				elseif (v2.name) then
+					-- save map name
+					mapName = v2.name
+				end
+
+				-- found map?
+				if (mapName) then
+					-- is tracked pvp?
+					local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
+					if (isTracked == true) then
+						-- found
+						found = true
+					end
+				end
+			end
+
+			-- found tracked queue?
+			if (found == true) then
+				-- get members
+				for k2,v2 in ipairs(v.members) do
+					-- insert player
+					local player = strformat("%s-%s", v2.name, v2.realm)
+					tinsert(roster, player)
+				end
+			end
+		end
+
+		-- setup type
+		type = "Queued"
 	end
 
-	-- failed
-	return nil
+	-- has roster?
+	if (#roster > 0) then
+		-- sort
+		tsort(roster)
+
+		-- process all
+		local text = nil
+		for k,v in ipairs(roster) do
+			-- first?
+			if (not text) then
+				-- add first
+				text = v
+			else
+				-- append
+				text = strformat("%s,%s", text, v)
+			end
+		end
+
+		-- return text
+		return strformat("%s@%s", type, text)
+	else
+		-- none
+		return strformat("%s@None", type)
+	end
 end
 
 -- look for players with 0 damage and 0 healing
@@ -1712,7 +1778,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				local count = NS.CommunityFlare_GetGroupCount()
 				if (NS.CommFlare.CF.CurrentPopped["count"]) then
 					-- use popped count
-					count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
+					count = strformat("%s,%d", count, NS.CommFlare.CF.CurrentPopped["count"])
 				end
 
 				-- push data
@@ -1795,7 +1861,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					local count = NS.CommunityFlare_GetGroupCount()
 					if (NS.CommFlare.CF.CurrentPopped["count"]) then
 						-- use popped count
-						count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
+						count = strformat("%s,%d", count, NS.CommFlare.CF.CurrentPopped["count"])
 					end
 
 					-- push data
@@ -1838,7 +1904,7 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 					local count = NS.CommunityFlare_GetGroupCount()
 					if (NS.CommFlare.CF.CurrentPopped["count"]) then
 						-- use popped count
-						count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
+						count = strformat("%s,%d", count, NS.CommFlare.CF.CurrentPopped["count"])
 					end
 
 					-- push data

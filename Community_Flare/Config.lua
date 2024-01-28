@@ -13,6 +13,7 @@ local _G                                        = _G
 local StaticPopupDialogs                        = _G.StaticPopupDialogs
 local UnitGetAvailableRoles                     = _G.UnitGetAvailableRoles
 local ClubGetSubscribedClubs                    = _G.C_Club.GetSubscribedClubs
+local ReloadUI                                  = _G.C_UI.Reload
 local ipairs                                    = _G.ipairs
 local next                                      = _G.next
 local print                                     = _G.print

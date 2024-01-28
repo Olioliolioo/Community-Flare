@@ -20,6 +20,11 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.10 features:
+-Only group leaders can report to community when they leave a queue.
+-Auto group invite now auto invites if the first word whispered is inv or invite. (Not case sensitive.)
+-BUGFIX: Last Seen now works again properly when right clicking on a Community Member.
+
 v1.09 features:
 -Last Seen Around option only shows for community member list now.
 -Bumped TOC to v10.2.5

@@ -150,7 +150,7 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 				local count = NS.CommunityFlare_GetGroupCount()
 				if (NS.CommFlare.CF.CurrentPopped["count"]) then
 					-- use popped count
-					count = strformat("%s, %d", count, NS.CommFlare.CF.CurrentPopped["count"])
+					count = strformat("%s,%d", count, NS.CommFlare.CF.CurrentPopped["count"])
 				end
 
 				-- has leader GUID?
@@ -190,10 +190,13 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 						text = strformat(L["Left Queue For Popped %s!"], mapName)
 					end
 
-					-- community reporter enabled?
-					if (NS.charDB.profile.communityReporter == true) then
-						-- send to community?
-						NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+					-- are you group leader?
+					if (NS.CommunityFlare_IsGroupLeader() == true) then
+						-- community reporter enabled?
+						if (NS.charDB.profile.communityReporter == true) then
+							-- send to community?
+							NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+						end
 					end
 
 					-- reset stuff
@@ -203,6 +206,12 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					-- push data
 					local guids = strformat("%s,%s", leaderGUID, partyGUID)
 					NS.CommunityFlare_BNPushData(strformat("!CF@%s@%s@Queue@Left@%s@%d@%s@%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build, mapName, NS.CommFlare.CF.LeftTime, count, guids))
+
+					-- update after 2 seconds
+					TimerAfter(2, function()
+						-- update local group
+						NS.CommunityFlare_Update_Group("local")
+					end)
 
 					-- clear after 30 seconds
 					TimerAfter(30, function()
@@ -218,7 +227,7 @@ function NS.CommunityFlare_AcceptBattlefieldPort(index, acceptFlag)
 					NS.CommunityFlare_SendMessage(nil, text)
 				end
 
-				-- clear queue
+				-- clear local / update social queues
 				NS.CommFlare.CF.LocalQueues[index] = nil
 			end
 		end
@@ -953,10 +962,14 @@ function NS.CommFlare:CHAT_MSG_BN_WHISPER(msg, ...)
 		-- process auto invite
 		NS.CommunityFlare_Process_Auto_Invite(bnSenderID)
 	else
-		-- split words
+		-- asking for invite?
 		local args = {strsplit(" ", text)}
 		local command = strlower(args[1])
-		if (command == "!debug") then
+		if ((command == "inv") or (command == "invite")) then
+			-- process auto invite
+			NS.CommunityFlare_Process_Auto_Invite(bnSenderID)
+		-- !debug?
+		elseif (command == "!debug") then
 			-- process debug command
 			NS.CommunityFlare_Process_Debug_Command(bnSenderID, args)
 		end
@@ -1045,10 +1058,14 @@ function NS.CommFlare:CHAT_MSG_WHISPER(msg, ...)
 		-- process auto invite
 		NS.CommunityFlare_Process_Auto_Invite(sender)
 	else
-		-- split words
+		-- asking for invite?
 		local args = {strsplit(" ", text)}
 		local command = strlower(args[1])
-		if (command == "!debug") then
+		if ((command == "inv") or (command == "invite")) then
+			-- process auto invite
+			NS.CommunityFlare_Process_Auto_Invite(sender)
+		-- !debug?
+		elseif (command == "!debug") then
 			-- process debug command
 			NS.CommunityFlare_Process_Debug_Command(sender, args)
 		end
@@ -1742,25 +1759,48 @@ function NS.CommFlare:PARTY_INVITE_REQUEST(msg, ...)
 			-- lfg invite popup shown?
 			if (LFGInvitePopup:IsShown()) then
 				-- force tank?
+				local timer = nil
 				if (NS.charDB.profile.forceTank == true) then
-					-- click tank button
-					LFGInvitePopupRoleButtonTank:Click()
+					-- wait some
+					timer = 0.5
+					TimerAfter(timer, function()
+						-- click tank button
+						LFGInvitePopupRoleButtonTank:Click()
+					end)
 				end
 
 				-- force healer?
 				if (NS.charDB.profile.forceHealer == true) then
-					-- click healer button
-					LFGInvitePopupRoleButtonHealer:Click()
+					-- wait some
+					timer = 0.5
+					TimerAfter(timer, function()
+						-- click healer button
+						LFGInvitePopupRoleButtonHealer:Click()
+					end)
 				end
 
 				-- force healer?
 				if (NS.charDB.profile.forceDPS == true) then
-					-- click dps button
-					LFGInvitePopupRoleButtonDPS:Click()
+					-- wait some
+					timer = 0.5
+					TimerAfter(timer, function()
+						-- click dps button
+						LFGInvitePopupRoleButtonDPS:Click()
+					end)
 				end
 
-				-- click accept button
-				LFGInvitePopupAcceptButton:Click()
+				-- no wait?
+				if (not timer) then
+					-- click accept button
+					LFGInvitePopupAcceptButton:Click()
+				else
+					-- wait some
+					timer = 0.5
+					TimerAfter(timer, function()
+						-- click accept button
+						LFGInvitePopupAcceptButton:Click()
+					end)
+				end
 			-- static popup shown?
 			elseif (StaticPopup_FindVisible("PARTY_INVITE")) then
 				-- accept party

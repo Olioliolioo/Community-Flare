@@ -114,6 +114,7 @@ NS.CommFlare.CF = {
 	LogListNamesList = {},
 	MapInfo = {},
 	MemberInfo = {},
+	MenuData = {},
 	MercCounts = {},
 	MercNames = {},
 	MercNamesList = {},

@@ -794,43 +794,11 @@ end
 function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 	-- get alliance roster?
 	if (text:find("GetRoster")) then
-		-- horde only?
-		local type = "Full"
-		local roster = nil
-		if (text:find("Horde")) then
-			-- get horde roster
-			type = "Horde"
-			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(0)
-		-- alliance only?
-		elseif (text:find("Alliance")) then
-			-- get alliance roster
-			type = "Alliance"
-			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(1)
-		else
-			-- get full roster
-			roster = NS.CommunityFlare_Battlefield_Get_Current_Roster()
-		end
-
 		-- has roster?
+		roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(text)
 		if (roster) then
-			-- process all
-			local text = nil
-			for k,v in ipairs(roster) do
-				-- first?
-				if (not text) then
-					-- add first
-					text = v
-				else
-					-- append
-					text = strformat("%s,%s", text, v)
-				end
-			end
-
-			-- has text to send?
-			if (text and (text ~= "")) then
-				-- send data
-				NS.CommunityFlare_BNSendData(senderID, strformat("Roster@%s@%s", type, text))
-			end
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("Roster@%s", roster))
 		end
 	-- get version?
 	elseif (text:find("GetVersion")) then

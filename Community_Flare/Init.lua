@@ -55,7 +55,6 @@ local MapGetMapInfo                             = _G.C_Map.GetMapInfo
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
 local SocialQueueGetGroupForPlayer              = _G.C_SocialQueue.GetGroupForPlayer
 local TimerAfter                                = _G.C_Timer.After
-local ReloadUI                                  = _G.C_UI.Reload()
 local pairs                                     = _G.pairs
 local time                                      = _G.time
 local type                                      = _G.type

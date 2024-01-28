@@ -285,12 +285,30 @@ function NS.CommunityFlare_CleanUpMembers()
 				NS.globalDB.global.members[player].moderator = true
 				v.moderator = true
 			end
+
+			-- still has id?
+			if (NS.globalDB.global.members[player].clubs[k2].id) then
+				-- delete id
+				NS.globalDB.global.members[player].clubs[k2].id = nil
+			end
 		end
 
 		-- not leader or owner?
 		if ((not v.leader or (v.leader == false)) and (not v.owner or (v.owner == false)) and (not v.moderator or (v.moderator == false))) then
 			-- reset priority
 			NS.globalDB.global.members[player].priority = NS.CommFlare.CF.MaxPriority
+		end
+
+		-- has added?
+		if (v.added) then
+			-- delete added
+			NS.globalDB.global.members[player].added = nil
+		end
+
+		-- has updated?
+		if (v.updated) then
+			-- delete updated
+			NS.globalDB.global.members[player].updated = nil
 		end
 
 		-- has lastgrouped?
@@ -668,9 +686,6 @@ function NS.CommunityFlare_AddMember(clubId, info, rebuild)
 	-- member exists?
 	local priority = NS.CommunityFlare_GetMemberPriority(info)
 	if (NS.globalDB.global.members[player]) then
-		-- set updated date
-		NS.globalDB.global.members[player].updated = date()
-
 		-- remove old fields
 		NS.globalDB.global.members[player].role = nil
 		NS.globalDB.global.members[player].clubId = nil
@@ -718,12 +733,6 @@ function NS.CommunityFlare_AddMember(clubId, info, rebuild)
 
 		-- has clubs loaded?
 		if (NS.globalDB.global.members[player].clubs and NS.globalDB.global.members[player].clubs[clubId]) then
-			-- id updated?
-			if (not NS.globalDB.global.members[player].clubs[clubId].id or (NS.globalDB.global.members[player].clubs[clubId].id ~= clubId)) then
-				-- update id
-				NS.globalDB.global.members[player].clubs[clubId].id = clubId
-			end
-			
 			-- role updated?
 			if (not NS.globalDB.global.members[player].clubs[clubId].role or (NS.globalDB.global.members[player].clubs[clubId].role ~= info.role)) then
 				-- update role
@@ -777,7 +786,6 @@ function NS.CommunityFlare_AddMember(clubId, info, rebuild)
 			["classID"] = info.classID,
 			["race"] = info.race,
 			["faction"] = info.faction,
-			["added"] = date(),
 			["priority"] = priority,
 			["clubs"] = {},
 		}
@@ -1056,11 +1064,10 @@ function NS.CommunityFlare_Refresh_Club_Members()
 		-- process all clubs
 		for k,v in pairs(member.clubs) do
 			-- remove all club members
-			local clubId = v.id
-			NS.CommunityFlare_RemoveAllClubMembersByClubID(clubId)
+			NS.CommunityFlare_RemoveAllClubMembersByClubID(k)
 
 			-- add all club members
-			NS.CommunityFlare_AddAllClubMembersByClubID(clubId)
+			NS.CommunityFlare_AddAllClubMembersByClubID(k)
 		end
 
 		-- save refresh date
@@ -1086,6 +1093,28 @@ function NS.CommunityFlare_Refresh_Club_Members()
 
 	-- clean up members
 	NS.CommunityFlare_CleanUpMembers()
+
+	-- build member guids list / update if already created
+	local updated = 0
+	NS.globalDB.global.MemberGUIDs = NS.globalDB.global.MemberGUIDs or {}
+	for k,v in pairs(NS.globalDB.global.members) do
+		-- updated?
+		if (not NS.globalDB.global.MemberGUIDs[v.guid] or (NS.globalDB.global.MemberGUIDs[v.guid] ~= v.name)) then
+			-- save / update member guid / name
+			NS.globalDB.global.MemberGUIDs[v.guid] = v.name
+			updated = updated + 1
+		end
+	end
+
+	-- updated?
+	if (updated > 0) then
+		-- flush members / guids
+		CommunityFlareDB.global.members = NS.globalDB.global.members
+		CommunityFlareDB.global.MemberGUIDs = NS.globalDB.global.MemberGUIDs
+	end
+
+	-- clean up history
+	NS.CommunityFlare_CleanUpHistory()
 end
 
 -- club member added
@@ -1224,7 +1253,7 @@ function NS.CommunityFlare_FindExCommunityMembers(clubId)
 		local matched = false
 		for k2,v2 in pairs(v.clubs) do
 			-- matches?
-			if (clubId == v2.id) then
+			if (clubId == k2) then
 				-- matched
 				matched = true
 			end
@@ -1374,6 +1403,12 @@ function NS.CommunityFlare_FindCommunityMemberByGUID(guid)
 	if (not guid or (guid == "")) then
 		-- failed
 		return nil
+	end
+
+	-- check inside database
+	if (NS.globalDB.global.MemberGUIDs and NS.globalDB.global.MemberGUIDs[guid]) then
+		-- member found?
+		local name = NS.globalDB.global.MemberGUIDs[guid]
 	end
 
 	-- not found?
