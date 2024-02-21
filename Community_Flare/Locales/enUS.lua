@@ -193,13 +193,8 @@ L["%s: No members are deployed for %s."] = true
 L["%s: No subscribed clubs found."] = true
 L["%s: Removed %d %s members from the database."] = true
 L["Around"] = true
-L["Completed Match Count"] = true
 L["Count: %d"] = true
-L["Grouped Match Count"] = true
 L["is NOT in the Database."] = true
-L["Last Grouped"] = true
-L["Last Seen"] = true
-L["Last Seen Around?"] = true
 L["Moved: %s to %s"] = true
 L["Not Member: %s"] = true
 L["Not seen recently."] = true
@@ -279,6 +274,16 @@ L["Vengeance"] = "Venganza"
 L["Whisper me INV and if a spot is still available, you'll be readded to the party."] = true
 L["Yes"] = true
 L["You've been removed from the party for being AFK."] = true
+
+-- Menus.lua
+L["Community Messages Sent"] = true
+L["Completed Match Count"] = true
+L["First Seen"] = true
+L["Grouped Match Count"] = true
+L["Last Community Message Sent"] = true
+L["Last Grouped"] = true
+L["Last Seen"] = true
+L["Last Seen Around?"] = true
 
 -- Social.lua
 L["%s: Group%d = %d Members"] = true

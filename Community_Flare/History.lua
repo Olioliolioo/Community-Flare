@@ -11,11 +11,14 @@ end
 -- localize stuff
 local _G                                        = _G
 local date                                      = _G.date
+local next                                      = _G.next
 local time                                      = _G.time
 local type                                      = _G.type
 local tonumber                                  = _G.tonumber
+local strformat                                 = _G.string.format
 local strgsub                                   = _G.string.gsub
 local strmatch                                  = _G.string.match
+local tinsert                                   = _G.table.insert
 
 -- clean up history
 function NS.CommunityFlare_CleanUpHistory()
@@ -47,6 +50,38 @@ function NS.CommunityFlare_CleanUpHistory()
 			-- update
 			NS.globalDB.global.history[k].lastgrouped = timestamp
 		end
+
+		-- last seen needs converted?
+		if (NS.globalDB.global.history[k].lastseen) then
+			-- move variable: Completed Matches Count (cmc)
+			NS.globalDB.global.history[k].last = NS.globalDB.global.history[k].lastseen
+			NS.globalDB.global.history[k].lastseen = nil
+		end
+
+		-- completed matches needs converted?
+		if (v.completedmatches) then
+			-- move variable: Completed Matches Count (cmc)
+			NS.globalDB.global.history[k].cmc = NS.globalDB.global.history[k].completedmatches
+			NS.globalDB.global.history[k].completedmatches = nil
+		end
+
+		-- grouped matches needs converted?
+		if (v.groupedmatches) then
+			-- move variable: Grouped Matches Count (gmc)
+			NS.globalDB.global.history[k].gmc = NS.globalDB.global.history[k].groupedmatches
+			NS.globalDB.global.history[k].groupedmatches = nil
+		end
+
+		-- no first seen?
+		local updatefirst = false
+		if (not NS.globalDB.global.history[k].first) then
+			-- update first seen
+			NS.globalDB.global.history[k].first = time()
+		-- first seen after last seen?
+		elseif (NS.globalDB.global.history[k].first and NS.globalDB.global.history[k].last and (NS.globalDB.global.history[k].first > NS.globalDB.global.history[k].last)) then
+			-- update first seen
+			NS.globalDB.global.history[k].first = NS.globalDB.global.history[k].last
+		end
 	end
 end
 
@@ -68,6 +103,31 @@ function NS.CommunityFlare_History_Get(player)
 	return NS.globalDB.global.history[player]
 end
 
+-- update first seen
+function NS.CommunityFlare_History_Update_First(player)
+	-- build proper name
+	if (not strmatch(player, "-")) then
+		-- add realm name
+		player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+	end
+
+	-- player not initialized?
+	if (not NS.globalDB.global.history[player]) then
+		-- initialize
+		NS.globalDB.global.history[player] = {}
+	end
+
+	-- no first seen?
+	if (not NS.globalDB.global.history[player].first) then
+		-- update first seen
+		NS.globalDB.global.history[player].first = time()
+		return true
+	end
+
+	-- failed
+	return false
+end
+
 -- update completed matches
 function NS.CommunityFlare_History_Update_Completed_Matches(player)
 	-- build proper name
@@ -83,13 +143,15 @@ function NS.CommunityFlare_History_Update_Completed_Matches(player)
 	end
 
 	-- first completed match?
-	if (not NS.globalDB.global.history[player].completedmatches) then
+	if (not NS.globalDB.global.history[player].cmc) then
 		-- initialize
-		NS.globalDB.global.history[player].completedmatches = 1
+		NS.globalDB.global.history[player].cmc = 1
 	else
 		-- increase
-		NS.globalDB.global.history[player].completedmatches = NS.globalDB.global.history[player].completedmatches + 1
+		NS.globalDB.global.history[player].cmc = NS.globalDB.global.history[player].cmc + 1
 	end
+
+	-- success
 	return true
 end
 
@@ -108,13 +170,15 @@ function NS.CommunityFlare_History_Update_Grouped_Matches(player)
 	end
 
 	-- first grouped match?
-	if (not NS.globalDB.global.history[player].groupedmatches) then
+	if (not NS.globalDB.global.history[player].gmc) then
 		-- initialize
-		NS.globalDB.global.history[player].groupedmatches = 1
+		NS.globalDB.global.history[player].gmc = 1
 	else
 		-- increase
-		NS.globalDB.global.history[player].groupedmatches = NS.globalDB.global.history[player].groupedmatches + 1
+		NS.globalDB.global.history[player].gmc = NS.globalDB.global.history[player].gmc + 1
 	end
+
+	-- success
 	return true
 end
 
@@ -134,6 +198,8 @@ function NS.CommunityFlare_History_Update_Last_Grouped(player)
 
 	-- save last grouped
 	NS.globalDB.global.history[player].lastgrouped = time()
+
+	-- success
 	return true
 end
 
@@ -152,6 +218,104 @@ function NS.CommunityFlare_History_Update_Last_Seen(player)
 	end
 
 	-- update last seen
-	NS.globalDB.global.history[player].lastseen = time()
+	NS.globalDB.global.history[player].last = time()
+
+	-- success
 	return true
+end
+
+-- update chat message data
+function NS.CommunityFlare_History_Update_Chat_Message_Data(player)
+	-- build proper name
+	if (not strmatch(player, "-")) then
+		-- add realm name
+		player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+	end
+
+	-- player not initialized?
+	if (not NS.globalDB.global.history[player]) then
+		-- initialize
+		NS.globalDB.global.history[player] = {}
+	end
+
+	-- first chat message?
+	if (not NS.globalDB.global.history[player].ncm) then
+		-- initialize
+		NS.globalDB.global.history[player].ncm = 1
+	else
+		-- increase
+		NS.globalDB.global.history[player].ncm = NS.globalDB.global.history[player].ncm + 1
+	end
+
+	-- update last message time
+	NS.globalDB.global.history[player].lcmt = time()
+
+	-- success
+	return true
+end
+
+-- get history
+function NS.CommunityFlare_Get_History_List(names)
+	local text = nil
+	local first, second = strsplit("@", names)
+	if (first == "GetHistory") then
+		-- multiple members?
+		local members = {}
+		if (strmatch(second, ",")) then
+			-- get all members
+			members = {strsplit(",", second)}
+		else
+			-- only one member
+			tinsert(members, second)
+		end
+
+		-- has members?
+		local list = nil
+		if (members and next(members)) then
+			-- process all
+			list = {}
+			for k,v in ipairs(members) do
+				-- get history
+				local history = NS.CommunityFlare_History_Get(v)
+				if (history) then
+					-- insert
+					local firstseen = tonumber(history.first) or 0
+					local lastseen = tonumber(history.last) or 0
+					local lastgrouped = tonumber(history.lastgrouped) or 0
+					local gmc = tonumber(history.gmc) or 0
+					local cmc = tonumber(history.cmc) or 0
+					local ncm = tonumber(history.ncm) or 0
+					local lcmt = tonumber(history.lcmt) or 0
+					tinsert(list, strformat("%s;%d;%d;%d;%d;%d;%d;%d", v, firstseen, lastseen, lastgrouped, gmc, cmc, ncm, lcmt))
+				else
+					-- insert
+					tinsert(list, strformat("%s;nil", v))
+				end
+			end
+		end
+
+		-- found list?
+		if (list and next(list)) then
+			-- process all
+			for k,v in ipairs(list) do
+				-- first?
+				if (not text) then
+					-- initialize
+					text = v
+				else
+					-- add text
+					text = strformat("%s,%s", text, v)
+				end
+			end
+		end
+	end
+
+	-- no text?
+	if (not text) then
+		-- none
+		text = "None"
+	end
+
+	-- return text
+	return text
 end

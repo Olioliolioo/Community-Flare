@@ -946,21 +946,17 @@ function NS.CommFlare:CHAT_MSG_BN_WHISPER(msg, ...)
 
 	-- version check?
 	local lower = strlower(text)
-	if (lower == "!cf") then
+	if (lower:find("!cf")) then
 		-- process version check
 		NS.CommunityFlare_Process_Version_Check(bnSenderID)
 	-- pass leadership?
-	elseif (lower == "!pl") then
+	elseif (lower:find("!pl")) then
 		-- process pass leadership
 		NS.CommunityFlare_Process_Pass_Leadership(bnSenderID)
 	-- status check?
-	elseif (lower == "!status") then
+	elseif (lower:find("!status")) then
 		-- process status check
 		NS.CommunityFlare_Process_Status_Check(bnSenderID)
-	-- asking for invite?
-	elseif ((lower == "inv") or (lower == "invite")) then
-		-- process auto invite
-		NS.CommunityFlare_Process_Auto_Invite(bnSenderID)
 	else
 		-- asking for invite?
 		local args = {strsplit(" ", text)}
@@ -969,9 +965,28 @@ function NS.CommFlare:CHAT_MSG_BN_WHISPER(msg, ...)
 			-- process auto invite
 			NS.CommunityFlare_Process_Auto_Invite(bnSenderID)
 		-- !debug?
-		elseif (command == "!debug") then
+		elseif (command:find("!debug")) then
 			-- process debug command
 			NS.CommunityFlare_Process_Debug_Command(bnSenderID, args)
+		end
+	end
+end
+
+-- process chat communities channel message
+function NS.CommFlare:CHAT_MSG_COMMUNITIES_CHANNEL(msg, ...)
+	local text, sender, _, _, _, _, _, _, channelBaseName, _, _, bnSenderID = ...
+	if (channelBaseName) then
+		-- split up
+		local name, clubId, streamId = strsplit(":", channelBaseName)
+		if (name and clubId and streamId) then
+			-- get player
+			clubId = tonumber(clubId)
+			local player = NS.CommunityFlare_GetPlayerName("full")
+			local member = NS.CommunityFlare_GetCommunityMember(player)
+			if (member and member.clubs and member.clubs[clubId]) then
+				-- update chat message data history
+				NS.CommunityFlare_History_Update_Chat_Message_Data(sender)
+			end
 		end
 	end
 end
@@ -983,7 +998,7 @@ function NS.CommunityFlare_Event_Chat_Message_Party(...)
 	-- skip messages from yourself
 	text = strlower(text)
 	if (NS.CommunityFlare_GetPlayerName("full") ~= sender) then
-		if (text == "!cf") then
+		if (text:find("!cf")) then
 			-- send community flare version number
 			NS.CommunityFlare_SendMessage(nil, strformat("%s: %s (%s)", NS.CommunityFlare_Title, NS.CommunityFlare_Version, NS.CommunityFlare_Build))
 		end
@@ -1042,21 +1057,17 @@ function NS.CommFlare:CHAT_MSG_WHISPER(msg, ...)
 
 	-- version check?
 	local lower = strlower(text)
-	if (lower == "!cf") then
+	if (lower:find("!cf")) then
 		-- process version check
 		NS.CommunityFlare_Process_Version_Check(sender)
 	-- pass leadership?
-	elseif (lower == "!pl") then
+	elseif (lower:find("!pl")) then
 		-- process pass leadership
 		NS.CommunityFlare_Process_Pass_Leadership(sender)
 	-- status check?
-	elseif (lower == "!status") then
+	elseif (lower:find("!status")) then
 		-- process status check
 		NS.CommunityFlare_Process_Status_Check(sender)
-	-- asking for invite?
-	elseif ((lower == "inv") or (lower == "invite")) then
-		-- process auto invite
-		NS.CommunityFlare_Process_Auto_Invite(sender)
 	else
 		-- asking for invite?
 		local args = {strsplit(" ", text)}
@@ -1065,7 +1076,7 @@ function NS.CommFlare:CHAT_MSG_WHISPER(msg, ...)
 			-- process auto invite
 			NS.CommunityFlare_Process_Auto_Invite(sender)
 		-- !debug?
-		elseif (command == "!debug") then
+		elseif (command:find("!debug")) then
 			-- process debug command
 			NS.CommunityFlare_Process_Debug_Command(sender, args)
 		end
@@ -2527,6 +2538,7 @@ function NS.CommFlare:OnEnable()
 	self:RegisterEvent("BN_CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_ADDON")
 	self:RegisterEvent("CHAT_MSG_BN_WHISPER")
+	self:RegisterEvent("CHAT_MSG_COMMUNITIES_CHANNEL")
 	self:RegisterEvent("CHAT_MSG_PARTY")
 	self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
@@ -2579,6 +2591,7 @@ function NS.CommFlare:OnDisable()
 	self:UnregisterEvent("BN_CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_ADDON")
 	self:UnregisterEvent("CHAT_MSG_BN_WHISPER")
+	self:UnregisterEvent("CHAT_MSG_COMMUNITIES_CHANNEL")
 	self:UnregisterEvent("CHAT_MSG_PARTY")
 	self:UnregisterEvent("CHAT_MSG_PARTY_LEADER")
 	self:UnregisterEvent("CHAT_MSG_SYSTEM")
@@ -2693,10 +2706,6 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		-- check for inactive players
 		print(L["Checking for inactive players"])
 		NS.CommunityFlare_Check_For_Inactive_Players()
-	elseif (lower == "findold") then
-		-- check for older members
-		print(L["Checking for older members"])
-		NS.CommunityFlare_FindExCommunityMembers(NS.charDB.profile.communityMain)
 	elseif (lower == "leaders") then
 		-- rebuild leaders
 		NS.CommunityFlare_RebuildCommunityLeaders()
@@ -2740,8 +2749,48 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["CPU Usage"], GetAddOnCPUUsage(ADDON_NAME)))
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["Memory Usage"], GetAddOnMemoryUsage(ADDON_NAME)))
 	else
-		-- display full battleground setup
-		NS.CommunityFlare_Update_Battleground_Stuff(true)
+		-- split words
+		local first, second, third = strsplit(" ", input)
+		first = strlower(first)
+		if (first == "find") then
+			-- has third?
+			local clubId = NS.charDB.profile.communityMain
+			if (third and (third ~= "")) then
+				-- process all
+				third = strlower(third)
+				for k,v in pairs(NS.globalDB.global.clubs) do
+					-- matches short name?
+					local shortName = strlower(v.shortName)
+					if (shortName == third) then
+						-- found
+						clubId = k
+						break
+					end
+				end
+			end
+
+			-- old?
+			if (second == "old") then
+				-- check for older members
+				print(L["Checking for older members"])
+				NS.CommunityFlare_FindExCommunityMembers(clubId)
+			-- inactive?
+			elseif (second == "inactive") then
+				-- find inactive members
+				NS.CommunityFlare_FindCommunityMembers(second, clubId)
+			-- noplay?
+			elseif (second == "nocompleted") then
+				-- find nocomplete members
+				NS.CommunityFlare_FindCommunityMembers(second, clubId)
+			-- nogroup?
+			elseif (second == "nogrouped") then
+				-- find nogroup members
+				NS.CommunityFlare_FindCommunityMembers(second, clubId)
+			end
+		else
+			-- display full battleground setup
+			NS.CommunityFlare_Update_Battleground_Stuff(true)
+		end
 	end
 end
 

@@ -20,6 +20,16 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.11 features:
+-History: Added more stuff to track, like first seen, last channel message time, channel message count, etc.
+-New /comf find <x> <y> commands to search Community Member database for various stuff.
+--x = inactive to search for members who you have never seen online.
+--x = nocompleted to search for members who have never completed a match with you.
+--x = nogrouped to search for members who have never grouped with you.
+---y = Short name for Communities to search from a specific Community.
+-BUGFIX: Notification now shows properly when someone is removed from a Community.
+-Old Command: /comf findold is now /comf find old
+
 v1.10 features:
 -Only group leaders can report to community when they leave a queue.
 -Auto group invite now auto invites if the first word whispered is inv or invite. (Not case sensitive.)

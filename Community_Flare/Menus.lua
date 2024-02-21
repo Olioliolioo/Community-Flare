@@ -25,15 +25,22 @@ function NS.CommunityFlare_Show_History(...)
 		print(strformat("%s: %s", NS.CommunityFlare_Title, member.name))
 		local history = NS.CommunityFlare_History_Get(player)
 		if (history) then
-			-- has last seend?
-			if (history and history.lastseen) then
+			-- has first seen?
+			if (history.first) then
+				-- show first seen time
+				local firstseen = date("%Y-%m-%d %H:%M:%S", history.first)
+				print(strformat("%s: %s %s", L["First Seen"], L["Around"], firstseen))
+			end
+
+			-- has last seen?
+			if (history.last) then
 				-- string?
-				if (type(history.lastseen) == "string") then
+				if (type(history.last) == "string") then
 					-- show last seen time
-					print(strformat("%s: %s %s", L["Last Seen"], L["Around"], history.lastseen))
+					print(strformat("%s: %s %s", L["Last Seen"], L["Around"], history.last))
 				else
 					-- show last seen time
-					local lastseen = date("%Y-%m-%d %H:%M:%S", history.lastseen)
+					local lastseen = date("%Y-%m-%d %H:%M:%S", history.last)
 					print(strformat("%s: %s %s", L["Last Seen"], L["Around"], lastseen))
 				end
 			else
@@ -55,15 +62,28 @@ function NS.CommunityFlare_Show_History(...)
 			end
 
 			-- has grouped matches?
-			if (history.groupedmatches) then
+			if (history.gmc) then
 				-- display grouped matches count
-				print(strformat("%s: %d", L["Grouped Match Count"], history.groupedmatches))
+				print(strformat("%s: %d", L["Grouped Match Count"], history.gmc))
 			end
 
 			-- has completed matches?
-			if (history.completedmatches) then
+			if (history.cmc) then
 				-- display completed matches count
-				print(strformat("%s: %d", L["Completed Match Count"], history.completedmatches))
+				print(strformat("%s: %d", L["Completed Match Count"], history.cmc))
+			end
+
+			-- has community message count?
+			if (history.ncm) then
+				-- display community messages sent
+				print(strformat("%s: %d", L["Community Messages Sent"], history.ncm))
+			end
+
+			-- has last community message time?
+			if (history.lcmt) then
+				-- display last grouped
+				local timestamp = date("%Y-%m-%d %H:%M:%S", history.lcmt)
+				print(strformat("%s: %s", L["Last Community Message Sent"], timestamp))
 			end
 		end
 	else

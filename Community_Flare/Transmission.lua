@@ -795,11 +795,31 @@ function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 	-- get alliance roster?
 	if (text:find("GetRoster")) then
 		-- has roster?
-		roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(text)
+		local roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(text)
 		if (roster) then
 			-- send data
 			NS.CommunityFlare_BNSendData(senderID, strformat("Roster@%s", roster))
 		end
+	-- get history?
+	elseif (text:find("GetHistory")) then
+		-- has history?
+		local history = NS.CommunityFlare_Get_History_List(text)
+		if (history) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("History@%s", history))
+		end
+	-- get mercenary?
+	elseif (text:find("GetMercenary")) then
+		-- check for mercenary buff
+		local mercenary = "false"
+		NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+		if (NS.CommFlare.CF.HasAura == true) then
+			-- has mercenary
+			mercenary = "true"
+		end
+
+		-- send data
+		NS.CommunityFlare_BNSendData(senderID, strformat("Mercenary@%s", mercenary))
 	-- get version?
 	elseif (text:find("GetVersion")) then
 		-- send data

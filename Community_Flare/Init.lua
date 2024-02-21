@@ -90,9 +90,11 @@ NS.HearthStoneSpells = {
 	[346060] = "Necrolord Hearthstone",
 	[363799] = "Dominated Hearthstone",
 	[366945] = "Enlightened Hearthstone",
-	[367013] = "Broker Translocationi Matrix",
+	[367013] = "Broker Translocation Matrix",
 	[375357] = "Timewalker's Hearthstone",
 	[391042] = "Ohn'ir Windsage's Hearthstone",
+	[420418] = "Deepdweller's Earthen Hearthstone",
+	[422284] = "Hearthstone of the Flame",
 }
 
 -- teleport spells

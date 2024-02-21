@@ -62,6 +62,8 @@ local next                                      = _G.next
 local pairs                                     = _G.pairs
 local print                                     = _G.print
 local time                                      = _G.time
+local tonumber                                  = _G.tonumber
+local tostring                                  = _G.tostring
 local mfloor                                    = _G.math.floor
 local strformat                                 = _G.string.format
 local strmatch                                  = _G.string.match
@@ -696,7 +698,6 @@ function NS.CommunityFlare_Process_Community_Members()
 	NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
 
 	-- process all scores
-	local clubId
 	SetBattlefieldScoreFaction()
 	for i=1, GetNumBattlefieldScores() do
 		local info = PvPGetScoreInfo(i)
@@ -722,6 +723,7 @@ function NS.CommunityFlare_Process_Community_Members()
 			end
 
 			-- alliance faction?
+			local mercenary = false
 			if (info.faction == 1) then
 				-- increase alliance counts
 				NS.CommFlare.CF.Alliance.Count = NS.CommFlare.CF.Alliance.Count + 1
@@ -729,6 +731,12 @@ function NS.CommunityFlare_Process_Community_Members()
 					NS.CommFlare.CF.Alliance.Healers = NS.CommFlare.CF.Alliance.Healers + 1
 				elseif (NS.CommFlare.CF.IsTank == true) then
 					NS.CommFlare.CF.Alliance.Tanks = NS.CommFlare.CF.Alliance.Tanks + 1
+				end
+
+				-- player is horde?
+				if (NS.CommFlare.CF.PlayerFaction == L["Horde"]) then
+					-- mercenary
+					mercenary = true
 				end
 			-- horde faction?
 			elseif (info.faction == 0) then
@@ -738,6 +746,12 @@ function NS.CommunityFlare_Process_Community_Members()
 					NS.CommFlare.CF.Horde.Healers = NS.CommFlare.CF.Horde.Healers + 1
 				elseif (NS.CommFlare.CF.IsTank == true) then
 					NS.CommFlare.CF.Horde.Tanks = NS.CommFlare.CF.Horde.Tanks + 1
+				end
+
+				-- player is alliance?
+				if (NS.CommFlare.CF.PlayerFaction == L["Alliance"]) then
+					-- mercenary
+					mercenary = true
 				end
 			end
 
@@ -750,65 +764,58 @@ function NS.CommunityFlare_Process_Community_Members()
 
 			-- get community member
 			local member = NS.CommunityFlare_GetCommunityMember(player)
-			if (member ~= nil) then
-				-- community counts setup?
-				clubId = next(member.clubs)
-				if (not NS.CommFlare.CF.CommCounts[clubId]) then
-					-- initialize
-					NS.CommFlare.CF.CommCounts[clubId] = 0
-				end
+			if (member and member.name and member.clubs) then
+				-- mercenary?
+				if (mercenary == true) then
+					-- process all clubs
+					for k,v in pairs(member.clubs) do
+						-- mercenary counts setup?
+						if (not NS.CommFlare.CF.MercCounts[k]) then
+							-- initialize
+							NS.CommFlare.CF.MercCounts[k] = 0
+						end
 
-				-- community names setup?
-				if (not NS.CommFlare.CF.CommNames[clubId]) then
-					-- initialize
-					NS.CommFlare.CF.CommNames[clubId] = {}
-				end
+						-- increase
+						NS.CommFlare.CF.MercCounts[k] = NS.CommFlare.CF.MercCounts[k] + 1
 
-				-- mercinary counts setup?
-				clubId = next(member.clubs)
-				if (not NS.CommFlare.CF.MercCounts[clubId]) then
-					-- initialize
-					NS.CommFlare.CF.MercCounts[clubId] = 0
-				end
+						-- mercenary names setup?
+						if (not NS.CommFlare.CF.MercNames[k]) then
+							-- initialize
+							NS.CommFlare.CF.MercNames[k] = {}
+						end
 
-				-- mercinary names setup?
-				if (not NS.CommFlare.CF.MercNames[clubId]) then
-					-- initialize
-					NS.CommFlare.CF.MercNames[clubId] = {}
-				end
-
-				-- player is alliance?
-				if (NS.CommFlare.CF.PlayerFaction == L["Alliance"]) then
-					-- alliance?
-					if (info.faction == 1) then
-						-- update stuff
-						tinsert(NS.CommFlare.CF.CommNamesList, member.name)
-						tinsert(NS.CommFlare.CF.CommNames[clubId], member.name)
-						NS.CommFlare.CF.CommCount = NS.CommFlare.CF.CommCount + 1
-						NS.CommFlare.CF.CommCounts[clubId] = NS.CommFlare.CF.CommCounts[clubId] + 1
-					else
-						-- update stuff
-						tinsert(NS.CommFlare.CF.MercNamesList, member.name)
-						tinsert(NS.CommFlare.CF.MercNames[clubId], member.name)
-						NS.CommFlare.CF.MercCount = NS.CommFlare.CF.MercCount + 1
-						NS.CommFlare.CF.MercCounts[clubId] = NS.CommFlare.CF.MercCounts[clubId] + 1
+						-- insert
+						tinsert(NS.CommFlare.CF.MercNames[k], member.name)
 					end
-				-- player is horde?
-				elseif (NS.CommFlare.CF.PlayerFaction == L["Horde"]) then
-					-- alliance?
-					if (info.faction == 1) then
-						-- update stuff
-						tinsert(NS.CommFlare.CF.MercNamesList, member.name)
-						tinsert(NS.CommFlare.CF.MercNames[clubId], member.name)
-						NS.CommFlare.CF.MercCount = NS.CommFlare.CF.MercCount + 1
-						NS.CommFlare.CF.MercCounts[clubId] = NS.CommFlare.CF.MercCounts[clubId] + 1
-					else
-						-- update stuff
-						tinsert(NS.CommFlare.CF.CommNamesList, member.name)
-						tinsert(NS.CommFlare.CF.CommNames[clubId], member.name)
-						NS.CommFlare.CF.CommCount = NS.CommFlare.CF.CommCount + 1
-						NS.CommFlare.CF.CommCounts[clubId] = NS.CommFlare.CF.CommCounts[clubId] + 1
+
+					-- update stuff
+					tinsert(NS.CommFlare.CF.MercNamesList, member.name)
+					NS.CommFlare.CF.MercCount = NS.CommFlare.CF.MercCount + 1
+				else
+					-- process all clubs
+					for k,v in pairs(member.clubs) do
+						-- community counts setup?
+						if (not NS.CommFlare.CF.CommCounts[k]) then
+							-- initialize
+							NS.CommFlare.CF.CommCounts[k] = 0
+						end
+
+						-- increase
+						NS.CommFlare.CF.CommCounts[k] = NS.CommFlare.CF.CommCounts[k] + 1
+
+						-- community names setup?
+						if (not NS.CommFlare.CF.CommNames[k]) then
+							-- initialize
+							NS.CommFlare.CF.CommNames[k] = {}
+						end
+
+						-- insert
+						tinsert(NS.CommFlare.CF.CommNames[k], member.name)
 					end
+
+					-- update stuff
+					tinsert(NS.CommFlare.CF.CommNamesList, member.name)
+					NS.CommFlare.CF.CommCount = NS.CommFlare.CF.CommCount + 1
 				end
 
 				-- should log list?
@@ -846,7 +853,7 @@ function NS.CommunityFlare_Process_Community_Members()
 
 	-- has mercenaries?
 	if (NS.CommFlare.CF.MercCount > 0) then
-		-- sort mercinary names
+		-- sort mercenary names
 		for k,v in pairs(NS.CommFlare.CF.MercNames) do
 			-- sort club names
 			tsort(NS.CommFlare.CF.MercNames[k])
@@ -915,9 +922,9 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			for k,v in pairs(NS.CommFlare.CF.MercNamesList) do
 				-- list still empty? start it!
 				if (list == nil) then
-					list = v
+					list = tostring(v)
 				else
-					list = list .. ", " .. v
+					list = strformat("%s, %s", tostring(list), tostring(v))
 				end
 			end
 
@@ -946,9 +953,9 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 				if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
 					-- add to list
 					if (list == nil) then
-						list = NS.globalDB.global.clubs[k].name .. " = " .. v
+						list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
 					else
-						list = list .. ", " .. NS.globalDB.global.clubs[k].name .. " = " .. v
+						list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
 					end
 				end
 			end
@@ -991,9 +998,9 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			for k,v in pairs(NS.CommFlare.CF.CommNamesList) do
 				-- list still empty? start it!
 				if (list == nil) then
-					list = v
+					list = tostring(v)
 				else
-					list = list .. ", " .. v
+					list = strformat("%s, %s", tostring(list), tostring(v))
 				end
 			end
 
@@ -1022,9 +1029,9 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 				if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
 					-- add to list
 					if (list == nil) then
-						list = NS.globalDB.global.clubs[k].name .. " = " .. v
+						list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
 					else
-						list = list .. ", " .. NS.globalDB.global.clubs[k].name .. " = " .. v
+						list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
 					end
 				end
 			end
@@ -1098,27 +1105,27 @@ end
 
 -- match started, log roster
 function NS.CommunityFlare_Match_Started_Log_Roster()
-	-- already logged?
-	if (NS.CommFlare.CF.MatchStartLogged == true) then
-		-- has match start / end times?
-		if (NS.CommFlare.CF.MatchEndTime > 0) then
-			-- calculate time
-			NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.MatchEndTime - NS.CommFlare.CF.MatchStartTime
-			NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
-			NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
-
-			-- save duration
-			local index = #NS.globalDB.global.matchLogList
-			NS.globalDB.global.matchLogList[index].duration = strformat("%d minutes, %d seconds", NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
-		end
-
-		-- finished
-		NS.CommFlare.CF.MatchStartLogged = false
-		return
-	end
-
 	-- has log list?
 	if (NS.CommFlare.CF.LogListCount > 0) then
+		-- already logged?
+		if (NS.CommFlare.CF.MatchStartLogged == true) then
+			-- has match start / end times?
+			if (NS.CommFlare.CF.MatchEndTime > 0) then
+				-- calculate time
+				NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.MatchEndTime - NS.CommFlare.CF.MatchStartTime
+				NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
+				NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
+
+				-- save duration
+				local index = #NS.globalDB.global.matchLogList
+				NS.globalDB.global.matchLogList[index].duration = strformat("%d minutes, %d seconds", NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
+			end
+
+			-- finished
+			NS.CommFlare.CF.MatchStartLogged = false
+			return
+		end
+
 		-- build log list
 		local list = nil
 		for k,v in pairs(NS.CommFlare.CF.LogListNamesList) do

@@ -815,6 +815,9 @@ function NS.CommunityFlare_AddMember(clubId, info, rebuild)
 			-- leader
 			NS.globalDB.global.members[player].moderator = true
 		end
+
+		-- update first seen
+		NS.CommunityFlare_History_Update_First(player)
 	end
 
 	-- rebuild leaders?
@@ -1153,12 +1156,57 @@ end
 function NS.CommunityFlare_ClubMemberRemoved(clubId, memberId)
 	-- get member info
 	NS.CommFlare.CF.MemberInfo = ClubGetMemberInfo(clubId, memberId)
-	if (NS.CommFlare.CF.MemberInfo ~= nil) then
+	if (not NS.CommFlare.CF.MemberInfo) then
+		-- has community frame member list?
+		if (CommunitiesFrame and CommunitiesFrame.MemberList and CommunitiesFrame.MemberList.allMemberList) then
+			-- process all
+			for k,v in ipairs(CommunitiesFrame.MemberList.allMemberList) do
+				-- matches?
+				if (v.memberId == memberId) then
+					-- found
+					NS.CommFlare.CF.MemberInfo = v
+					break
+				end
+			end
+		end
+	end
+
+	-- found member info?
+	if (NS.CommFlare.CF.MemberInfo) then
+		-- build proper name
+		local player = NS.CommFlare.CF.MemberInfo.name
+		if (not strmatch(player, "-")) then
+			-- add realm name
+			player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+		end
+
+		-- has clubs?
+		if (NS.globalDB.global.members[player] and NS.globalDB.global.members[player].clubs) then
+			-- process all
+			local count = 0
+			for k,v in pairs(NS.globalDB.global.members[player].clubs) do
+				-- matches?
+				if (k == clubId) then
+					-- delete club
+					NS.globalDB.global.members[player].clubs[k] = nil
+				else
+					-- increase
+					count = count + 1
+				end
+			end
+
+			-- no clubs left?
+			if (count == 0) then
+				-- delete member
+				NS.globalDB.global.members[player] = nil
+			end
+		end
+
 		-- found member name?
 		local info = ClubGetClubInfo(clubId)
 		if (NS.CommFlare.CF.MemberInfo.name ~= nil) then
 			-- display
-			print(strformat(L["%s: %s (%d, %d) removed from community %s."], NS.CommunityFlare_Title, NS.CommFlare.CF.MemberInfo.name, clubId, memberId, info.name))
+			print(strformat(L["%s: %s (%d, %d) removed from community %s."], NS.CommunityFlare_Title, player, clubId, memberId, info.name))
 		end
 	end
 end
@@ -1276,6 +1324,46 @@ function NS.CommunityFlare_FindExCommunityMembers(clubId)
 
 	-- wipe old
 	wipe(current)
+
+	-- display count
+	print(strformat(L["Count: %d"], count))
+end
+
+-- find inactive members
+function NS.CommunityFlare_FindCommunityMembers(type, clubId)
+	-- process all
+	local count = 0
+	for k,v in pairs(NS.globalDB.global.members) do
+		-- has club membership?
+		if (v.clubs and v.clubs[clubId]) then
+			-- inactive?
+			local history = NS.CommunityFlare_History_Get(k)
+			if (type == "inactive") then
+				-- get history
+				if (not history or not history.last) then
+					-- TODO: display for now
+					print("Inactive: ", k)
+					count = count + 1
+				end
+			-- nocompleted?
+			elseif (type == "nocompleted") then
+				-- has history, but no matches completed?
+				if (history and not history.cmc) then
+					-- TODO: display for now
+					print("No Completed Matches: ", k)
+					count = count + 1
+				end
+			-- nogrouped?
+			elseif (type == "nogrouped") then
+				-- has history, but no matches grouped?
+				if (history and not history.gmc) then
+					-- TODO: display for now
+					print("No Grouped Matches: ", k)
+					count = count + 1
+				end
+			end
+		end
+	end
 
 	-- display count
 	print(strformat(L["Count: %d"], count))
