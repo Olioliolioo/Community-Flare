@@ -25,6 +25,7 @@ local print                                     = _G.print
 local select                                    = _G.select
 local time                                      = _G.time
 local tonumber                                  = _G.tonumber
+local tostring                                  = _G.tostring
 local type                                      = _G.type
 local wipe                                      = _G.wipe
 local strformat                                 = _G.string.format
@@ -33,6 +34,29 @@ local strmatch                                  = _G.string.match
 local strsplit                                  = _G.string.split
 local tinsert                                   = _G.table.insert
 local tsort                                     = _G.table.sort
+
+-- get clubs
+function NS.CommunityFlare_Get_Clubs()
+	-- count eligible communities
+	local text = nil
+	NS.CommFlare.CF.Clubs = ClubGetSubscribedClubs()
+	for k,v in ipairs(NS.CommFlare.CF.Clubs) do
+		-- community?
+		if (v.clubType == Enum.ClubType.Character) then
+			-- first?
+			if (not text) then
+				-- initialize
+				text = strformat("%s,%s,%s,%s,%s", tostring(v.clubId), v.name, v.shortName, tostring(v.memberCount), tostring(v.crossFaction))
+			else
+				-- append
+				text = strformat("%s;%s,%s,%s,%s,%s", text, tostring(v.clubId), v.name, v.shortName, tostring(v.memberCount), tostring(v.crossFaction))
+			end
+		end 
+	end
+
+	-- return text
+	return text
+end
 
 -- verify default community setup
 function NS.CommunityFlare_VerifyDefaultCommunitySetup()
@@ -1226,6 +1250,7 @@ function NS.CommunityFlare_ClubMemberUpdated(clubId, memberId)
 		-- member exists?
 		if (NS.globalDB.global.members[player]) then
 			-- valid club?
+			local rebuild = false
 			if (NS.globalDB.global.members[player].clubs and NS.globalDB.global.members[player].clubs[clubId]) then
 				-- role updated?
 				if (not NS.globalDB.global.members[player].clubs[clubId].role or (NS.globalDB.global.members[player].clubs[clubId].role ~= NS.CommFlare.CF.MemberInfo.role)) then
@@ -1248,16 +1273,20 @@ function NS.CommunityFlare_ClubMemberUpdated(clubId, memberId)
 					-- update priority
 					NS.globalDB.global.members[player].clubs[clubId].priority = priority
 
-					-- rebuild
-					rebuild = true
-				end
+					-- find lowest priority
+					local lowest = 999
+					for k,v in pairs(NS.globalDB.global.members[player].clubs) do
+						-- higher priority (lesser number)?
+						if ((v.priority > 0) and (v.priority < lowest)) then
+							-- update lowest
+							lowest = v.priority
+						end
+					end
 
-				-- process all clubs
-				for k,v in ipairs(NS.globalDB.global.members[player].clubs) do
-					-- higher priority (lesser number)?
-					if ((v.priority > 0) and (v.priority < NS.globalDB.global.members[player].priority)) then
+					-- update player priority?
+					if (NS.globalDB.global.members[player].priority ~= lowest) then
 						-- update priority
-						NS.globalDB.global.members[player].priority = v.priority
+						NS.globalDB.global.members[player].priority = lowest
 
 						-- rebuild
 						rebuild = true
@@ -1341,24 +1370,24 @@ function NS.CommunityFlare_FindCommunityMembers(type, clubId)
 			if (type == "inactive") then
 				-- get history
 				if (not history or not history.last) then
-					-- TODO: display for now
-					print("Inactive: ", k)
+					-- display player name
+					print(strformat(L["Inactive: %s"], k))
 					count = count + 1
 				end
 			-- nocompleted?
 			elseif (type == "nocompleted") then
 				-- has history, but no matches completed?
 				if (history and not history.cmc) then
-					-- TODO: display for now
-					print("No Completed Matches: ", k)
+					-- display player name
+					print(strformat(L["No Completed Matches: %s"], k))
 					count = count + 1
 				end
 			-- nogrouped?
 			elseif (type == "nogrouped") then
 				-- has history, but no matches grouped?
 				if (history and not history.gmc) then
-					-- TODO: display for now
-					print("No Grouped Matches: ", k)
+					-- display player name
+					print(strformat(L["No Grouped Matches: %s"], k))
 					count = count + 1
 				end
 			end

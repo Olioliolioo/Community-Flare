@@ -193,9 +193,12 @@ L["%s: No members are deployed for %s."] = "%s : aucun membre n'est déployé po
 L["%s: No subscribed clubs found."] = "aucun club abonné trouvé."
 L["%s: Removed %d %s members from the database."] = "%s : Retiré %d %s membres de la base de données."
 L["Around"] = "Aux alentours"
-L["Count: %d"] = "Total: %d"
+L["Count: %d"] = "Compte : %d"
+L["Inactive: %s"] = "Inactif : %s"
 L["is NOT in the Database."] = "N'est pas dans la base de données."
 L["Moved: %s to %s"] = "Déplacé: %s à %s"
+L["No Completed Matches: %s"] = "Aucune correspondance terminée : %s"
+L["No Grouped Matches: %s"] = "Aucune correspondance groupée : %s"
 L["Not Member: %s"] = "Pas membre: %s"
 L["Not seen recently."] = "Pas vue récemment."
 
@@ -284,6 +287,7 @@ L["Last Community Message Sent"] = "Dernier message communautaire envoyé"
 L["Last Grouped"] = "Dernièrement groupé"
 L["Last Seen"] = "Dernièrement groupé"
 L["Last Seen Around?"] = "Dernièrement vue aux alentours de?"
+L["Request Party Leader"] = "Demander le chef du groupe"
 
 -- Social.lua
 L["%s: Group%d = %d Members"] = "%s : Group%d = %d Membres"

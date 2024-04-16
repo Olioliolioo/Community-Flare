@@ -100,6 +100,7 @@ NS.CommFlare.CF = {
 	Winner = nil,
 
 	-- tables
+	AuraData = {},
 	Clubs = {},
 	ClubList = {},
 	ClubMembers = {},

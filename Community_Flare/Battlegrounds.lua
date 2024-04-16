@@ -64,6 +64,7 @@ local print                                     = _G.print
 local time                                      = _G.time
 local tonumber                                  = _G.tonumber
 local tostring                                  = _G.tostring
+local type                                      = _G.type
 local mfloor                                    = _G.math.floor
 local strformat                                 = _G.string.format
 local strmatch                                  = _G.string.match
@@ -300,7 +301,7 @@ function NS.CommunityFlare_Battlefield_Get_Current_Roster(type)
 		end
 
 		-- process all scores
-		SetBattlefieldScoreFaction()
+		SetBattlefieldScoreFaction(-1)
 		for i=1, GetNumBattlefieldScores() do
 			local info = PvPGetScoreInfo(i)
 			if (info) then
@@ -402,7 +403,7 @@ end
 -- look for players with 0 damage and 0 healing
 function NS.CommunityFlare_Check_For_Inactive_Players()
 	-- any battlefield scores?
-	SetBattlefieldScoreFaction()
+	SetBattlefieldScoreFaction(-1)
 	NS.CommFlare.CF.NumScores = GetNumBattlefieldScores()
 	if (NS.CommFlare.CF.NumScores == 0) then
 		-- finished
@@ -418,7 +419,7 @@ function NS.CommunityFlare_Check_For_Inactive_Players()
 		NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
 
 		-- process all scores
-		SetBattlefieldScoreFaction()
+		SetBattlefieldScoreFaction(-1)
 		for i=1, GetNumBattlefieldScores() do
 			local info = PvPGetScoreInfo(i)
 			if (info and info.name) then
@@ -698,7 +699,7 @@ function NS.CommunityFlare_Process_Community_Members()
 	NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
 
 	-- process all scores
-	SetBattlefieldScoreFaction()
+	SetBattlefieldScoreFaction(-1)
 	for i=1, GetNumBattlefieldScores() do
 		local info = PvPGetScoreInfo(i)
 		if (info) then
@@ -884,184 +885,162 @@ end
 
 -- count stuff in battlegrounds and promote to assists
 function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
-	-- any battlefield scores?
+	-- update stuff first
 	SetBattlefieldScoreFaction()
-	NS.CommFlare.CF.NumScores = GetNumBattlefieldScores()
-	if (NS.CommFlare.CF.NumScores == 0) then
-		-- should print?
-		if (isPrint == true) then
-			-- not in battleground yet
-			print(strformat(L["%s: Not in battleground yet."], NS.CommunityFlare_Title))
-		end
-		return
-	end
-
-	-- process community members
 	NS.CommunityFlare_Process_Community_Members()
+	NS.CommFlare.CF.NumScores = GetNumBattlefieldScores()
 
 	-- should print?
-	local timer = 0.0
 	if (isPrint == true) then
-		-- display results staggered
-		TimerAfter(timer, function()
-			-- display faction results
-			print(strformat(L["%s: Healers = %d, Tanks = %d"], L["Horde"], NS.CommFlare.CF.Horde.Healers, NS.CommFlare.CF.Horde.Tanks))
-			print(strformat(L["%s: Healers = %d, Tanks = %d"], L["Alliance"], NS.CommFlare.CF.Alliance.Healers, NS.CommFlare.CF.Alliance.Tanks))
-		end)
-
-		-- next
-		timer = timer + 0.1
-	end
-
-	-- has mercenary players?
-	if (NS.CommFlare.CF.MercCount > 0) then
-		-- display community names?
-		if (NS.charDB.profile.communityDisplayNames == true) then
-			-- build mercenary list
-			local list = nil
-			for k,v in pairs(NS.CommFlare.CF.MercNamesList) do
-				-- list still empty? start it!
-				if (list == nil) then
-					list = tostring(v)
-				else
-					list = strformat("%s, %s", tostring(list), tostring(v))
-				end
-			end
-
-			-- found merc list?
-			if (list ~= nil) then
-				-- should print?
-				if (isPrint == true) then
-					-- display results staggered
-					TimerAfter(timer, function()
-						-- display community mercenaries
-						print(strformat(L["Community Mercenaries: %s"], list))
-					end)
-
-					-- next
-					timer = timer + 0.1
-				end
-			end
-		end
-
-		-- found mercenary counts?
-		if (NS.CommFlare.CF.MercCounts and next(NS.CommFlare.CF.MercCounts)) then
-			-- build count list
-			local list = nil
-			for k,v in pairs(NS.CommFlare.CF.MercCounts) do
-				-- has community?
-				if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
-					-- add to list
-					if (list == nil) then
-						list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
-					else
-						list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
-					end
-				end
-			end
-
-			-- found list?
-			if (list ~= nil) then
-				-- should print?
-				if (isPrint == true) then
-					-- display results staggered
-					TimerAfter(timer, function()
-						-- display community counts
-						print(strformat(L["Mercenary Counts: %s"], list))
-					end)
-
-					-- next
-					timer = timer + 0.1
-				end
-			end
-		end
-
-		-- should print?
-		if (isPrint == true) then
+		-- no scores yet?
+		if (NS.CommFlare.CF.NumScores == 0) then
+			-- not in battleground yet
+			print(strformat(L["%s: Not in battleground yet."], NS.CommunityFlare_Title))
+		else
 			-- display results staggered
+			local timer = 0.0
 			TimerAfter(timer, function()
-				-- display mercs count
-				print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercCount))
+				-- display faction results
+				print(strformat(L["%s: Healers = %d, Tanks = %d"], L["Horde"], NS.CommFlare.CF.Horde.Healers, NS.CommFlare.CF.Horde.Tanks))
+				print(strformat(L["%s: Healers = %d, Tanks = %d"], L["Alliance"], NS.CommFlare.CF.Alliance.Healers, NS.CommFlare.CF.Alliance.Tanks))
 			end)
 
 			-- next
 			timer = timer + 0.1
-		end
-	end
 
-	-- has community players?
-	if (NS.CommFlare.CF.CommCount > 0) then
-		-- display community names?
-		if (NS.charDB.profile.communityDisplayNames == true) then
-			-- build member list
-			local list = nil
-			for k,v in pairs(NS.CommFlare.CF.CommNamesList) do
-				-- list still empty? start it!
-				if (list == nil) then
-					list = tostring(v)
-				else
-					list = strformat("%s, %s", tostring(list), tostring(v))
-				end
-			end
+			-- has mercenary players?
+			if (NS.CommFlare.CF.MercCount > 0) then
+				-- display community names?
+				if (NS.charDB.profile.communityDisplayNames == true) then
+					-- build mercenary list
+					local list = nil
+					for k,v in pairs(NS.CommFlare.CF.MercNamesList) do
+						-- list still empty? start it!
+						if (list == nil) then
+							list = tostring(v)
+						else
+							list = strformat("%s, %s", tostring(list), tostring(v))
+						end
+					end
 
-			-- found list?
-			if (list ~= nil) then
-				-- should print?
-				if (isPrint == true) then
-					-- display results staggered
-					TimerAfter(timer, function()
-						-- display community members
-						print(strformat(L["Community Members: %s"], list))
-					end)
+					-- found merc list?
+					if (list ~= nil) then
+						-- display results staggered
+						TimerAfter(timer, function()
+							-- display community mercenaries
+							print(strformat(L["Community Mercenaries: %s"], list))
+						end)
 
-					-- next
-					timer = timer + 0.1
-				end
-			end
-		end
-
-		-- found community counts?
-		if (NS.CommFlare.CF.CommCounts and next(NS.CommFlare.CF.CommCounts)) then
-			-- build count list
-			local list = nil
-			for k,v in pairs(NS.CommFlare.CF.CommCounts) do
-				-- has community?
-				if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
-					-- add to list
-					if (list == nil) then
-						list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
-					else
-						list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
+						-- next
+						timer = timer + 0.1
 					end
 				end
-			end
 
-			-- found list?
-			if (list ~= nil) then
-				-- should print?
-				if (isPrint == true) then
-					-- display results staggered
-					TimerAfter(timer, function()
-						-- display community counts
-						print(strformat(L["Community Counts: %s"], list))
-					end)
+				-- found mercenary counts?
+				if (NS.CommFlare.CF.MercCounts and next(NS.CommFlare.CF.MercCounts)) then
+					-- build count list
+					local list = nil
+					for k,v in pairs(NS.CommFlare.CF.MercCounts) do
+						-- has community?
+						if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
+							-- add to list
+							if (list == nil) then
+								list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
+							else
+								list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
+							end
+						end
+					end
 
-					-- next
-					timer = timer + 0.1
+					-- found list?
+					if (list ~= nil) then
+						-- display results staggered
+						TimerAfter(timer, function()
+							-- display community counts
+							print(strformat(L["Mercenary Counts: %s"], list))
+						end)
+
+						-- next
+						timer = timer + 0.1
+					end
 				end
+
+				-- display results staggered
+				TimerAfter(timer, function()
+					-- display mercs count
+					print(strformat(L["Total Mercenaries: %d"], NS.CommFlare.CF.MercCount))
+				end)
+
+				-- next
+				timer = timer + 0.1
 			end
-		end
 
-		-- should print?
-		if (isPrint == true) then
-			-- display results staggered
-			TimerAfter(timer, function()
-				-- display community count
-				print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
-			end)
+			-- has community players?
+			if (NS.CommFlare.CF.CommCount > 0) then
+				-- display community names?
+				if (NS.charDB.profile.communityDisplayNames == true) then
+					-- build member list
+					local list = nil
+					for k,v in pairs(NS.CommFlare.CF.CommNamesList) do
+						-- list still empty? start it!
+						if (list == nil) then
+							list = tostring(v)
+						else
+							list = strformat("%s, %s", tostring(list), tostring(v))
+						end
+					end
 
-			-- next
-			timer = timer + 0.1
+					-- found list?
+					if (list ~= nil) then
+						-- display results staggered
+						TimerAfter(timer, function()
+							-- display community members
+							print(strformat(L["Community Members: %s"], list))
+						end)
+
+						-- next
+						timer = timer + 0.1
+					end
+				end
+
+				-- found community counts?
+				if (NS.CommFlare.CF.CommCounts and next(NS.CommFlare.CF.CommCounts)) then
+					-- build count list
+					local list = nil
+					for k,v in pairs(NS.CommFlare.CF.CommCounts) do
+						-- has community?
+						if (NS.globalDB.global.clubs[k] and NS.globalDB.global.clubs[k].name) then
+							-- add to list
+							if (list == nil) then
+								list = strformat("%s = %d", NS.globalDB.global.clubs[k].name, tonumber(v))
+							else
+								list = strformat("%s, %s = %d", list, NS.globalDB.global.clubs[k].name, tonumber(v))
+							end
+						end
+					end
+
+					-- found list?
+					if (list ~= nil) then
+						-- display results staggered
+						TimerAfter(timer, function()
+							-- display community counts
+							print(strformat(L["Community Counts: %s"], list))
+						end)
+
+						-- next
+						timer = timer + 0.1
+					end
+				end
+
+				-- display results staggered
+				TimerAfter(timer, function()
+					-- display community count
+					print(strformat(L["Total Members: %d"], NS.CommFlare.CF.CommCount))
+				end)
+
+				-- next
+				timer = timer + 0.1
+			end
 		end
 	end
 end
@@ -1208,7 +1187,7 @@ function NS.CommunityFlare_Process_Pass_Leadership(sender)
 					end
 
 					-- higher priority?
-					if (member.priority < player.priority) then
+					if (member.priority <= player.priority) then
 						-- should promote
 						shouldPromote = true
 					end
@@ -1328,14 +1307,8 @@ function NS.CommunityFlare_Process_Auto_Invite(sender)
 	end
 end
 
--- process status check
-function NS.CommunityFlare_Process_Status_Check(sender)
-	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
-		-- finished
-		return
-	end
-
+-- get battleground status
+function NS.CommunityFlare_Get_Battleground_Status()
 	-- currently in battleground?
 	if (PvPIsBattleground() == true) then
 		-- update battleground status
@@ -1424,18 +1397,11 @@ function NS.CommunityFlare_Process_Status_Check(sender)
 			text = strformat(L["%s: Not an epic battleground to track."], NS.CommFlare.CF.MapInfo.name)
 		end
 
-		-- has text to send?
-		if (text and (text ~= "")) then
-			-- add to table for later
-			NS.CommFlare.CF.StatusCheck[sender] = time()
-
-			-- send text to sender
-			NS.CommunityFlare_SendMessage(sender, text)
-		end
+		-- return text
+		return text
 	else
 		-- check for queued battleground
 		local text = {}
-		local timer = 0.0
 		local reported = false
 		NS.CommFlare.CF.Leader = NS.CommunityFlare_GetPartyLeader()
 		for i=1, GetMaxBattlefieldID() do
@@ -1458,16 +1424,82 @@ function NS.CommunityFlare_Process_Status_Check(sender)
 					NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 					NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 					mapName)
-
-				-- send replies staggered
-				TimerAfter(timer, function()
-					-- report queue time
-					NS.CommunityFlare_SendMessage(sender, text[i])
-				end)
-
-				-- next
-				timer = timer + 0.2
 			end
+		end
+
+		-- return text
+		return text
+	end
+end
+
+-- get status
+function NS.CommunityFlare_Get_Status()
+	-- get battleground status
+	local text = NS.CommunityFlare_Get_Battleground_Status()
+	if (text) then
+		-- still in queue?
+		if (type(text) == "table") then
+			-- process all
+			local status = nil
+			for k,v in pairs(text) do
+				-- none yet?
+				if (not status) then
+					-- initialize
+					status = v
+				else
+					-- append
+					status = strformat("%s@%s", status, v)
+				end
+			end
+
+			-- none found?
+			if (not status) then
+				-- not currently in queue
+				status = L["Not currently in an epic battleground or queue!"]
+			end
+
+			-- copy status
+			text = status
+		end
+	end
+
+	-- return text
+	return text
+end
+
+-- process status check
+function NS.CommunityFlare_Process_Status_Check(sender)
+	-- no shared community?
+	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+		-- finished
+		return
+	end
+
+	-- inside battleground?
+	local text = NS.CommunityFlare_Get_Battleground_Status()
+	if (type(text) == "string") then
+		-- add to table for later
+		NS.CommFlare.CF.StatusCheck[sender] = time()
+
+		-- send text to sender
+		NS.CommunityFlare_SendMessage(sender, text)
+	-- still in queue?
+	elseif (type(text) == "table") then
+		-- process all
+		local timer = 0.0
+		local reported = false
+		for k,v in pairs(text) do
+			-- reported
+			reported = true
+
+			-- send replies staggered
+			TimerAfter(timer, function()
+				-- report queue time
+				NS.CommunityFlare_SendMessage(sender, v)
+			end)
+
+			-- next
+			timer = timer + 0.2
 		end
 
 		-- not reported?

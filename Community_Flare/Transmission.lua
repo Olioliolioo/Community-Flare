@@ -790,39 +790,107 @@ function NS.CommunityFlare_Handle_Internal_Commands(event, sender, text, ...)
 	return true
 end
 
+-- get deserter
+function NS.CommunityFlare_Get_Deserter()
+	-- check for deserter buff
+	local text = "false"
+	NS.CommunityFlare_CheckForAura("player", "HARMFUL", L["Deserter"])
+	if (NS.CommFlare.CF.HasAura == true) then
+		-- has deserter
+		text = "true"
+	end
+
+	-- has time left?
+	if (NS.CommFlare.CF.AuraData.timeLeft) then
+		-- append time left
+		text = strformat("%s,%s", text, tostring(NS.CommFlare.CF.AuraData.timeLeft))
+	end
+
+	-- return text
+	return text
+end
+
+-- get mercenary
+function NS.CommunityFlare_Get_Mercenary()
+	-- check for mercenary buff
+	local text = "false"
+	NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+	if (NS.CommFlare.CF.HasAura == true) then
+		-- has mercenary
+		text = "true"
+	end
+
+	-- has time left?
+	if (NS.CommFlare.CF.AuraData.timeLeft) then
+		-- append time left
+		text = strformat("%s,%s", text, tostring(NS.CommFlare.CF.AuraData.timeLeft))
+	end
+
+	-- return text
+	return text
+end
+
 -- process battle net commands
 function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
-	-- get alliance roster?
-	if (text:find("GetRoster")) then
-		-- has roster?
-		local roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(text)
-		if (roster) then
+	-- get clubs?
+	if (text:find("GetClubs")) then
+		-- get clubs
+		local clubs = NS.CommunityFlare_Get_Clubs()
+		if (clubs) then
 			-- send data
-			NS.CommunityFlare_BNSendData(senderID, strformat("Roster@%s", roster))
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Clubs@%s", tostring(clubs)))
+		end
+	-- get deserter?
+	elseif (text:find("GetDeserter")) then
+		-- get deserter
+		local deserter = NS.CommunityFlare_Get_Deserter()
+		if (deserter) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Deserter@%s", tostring(deserter)))
 		end
 	-- get history?
 	elseif (text:find("GetHistory")) then
-		-- has history?
+		-- get history list
 		local history = NS.CommunityFlare_Get_History_List(text)
 		if (history) then
 			-- send data
-			NS.CommunityFlare_BNSendData(senderID, strformat("History@%s", history))
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@History@%s", tostring(history)))
 		end
 	-- get mercenary?
 	elseif (text:find("GetMercenary")) then
-		-- check for mercenary buff
-		local mercenary = "false"
-		NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-		if (NS.CommFlare.CF.HasAura == true) then
-			-- has mercenary
-			mercenary = "true"
+		-- get mercenary
+		local mercenary = NS.CommunityFlare_Get_Mercenary()
+		if (mercenary) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Mercenary@%s", tostring(mercenary)))
 		end
-
-		-- send data
-		NS.CommunityFlare_BNSendData(senderID, strformat("Mercenary@%s", mercenary))
+	-- get queues?
+	elseif (text:find("GetQueues")) then
+		-- find social queues by map name
+		local queues = NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
+		if (queues) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Queues@%s", tostring(queues)))
+		end
+	-- get roster?
+	elseif (text:find("GetRoster")) then
+		-- get current roster
+		local roster = NS.CommunityFlare_Battlefield_Get_Current_Roster(text)
+		if (roster) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Roster@%s", tostring(roster)))
+		end
+	-- get status?
+	elseif (text:find("GetStatus")) then
+		-- get status
+		local status = NS.CommunityFlare_Get_Status()
+		if (status) then
+			-- send data
+			NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Status@%s", tostring(status)))
+		end
 	-- get version?
 	elseif (text:find("GetVersion")) then
 		-- send data
-		NS.CommunityFlare_BNSendData(senderID, strformat("Version@%s,%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build))
+		NS.CommunityFlare_BNSendData(senderID, strformat("!CommFlare@Version@%s,%s", tostring(NS.CommunityFlare_Version), tostring(NS.CommunityFlare_Build)))
 	end
 end

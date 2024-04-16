@@ -1,3 +1,8 @@
+v1.12 features:
+-New Feature: Right click on your Party Members to "Request Party Lead". (They must have Community Flare v1.12+ as well.)
+-BUGFIX: Fixed some issues with the Community Leaders priority being updated properly.
+-Bumped TOC to v10.2.6
+
 v1.11 features:
 -History: Added more stuff to track, like first seen, last channel message time, channel message count, etc.
 -New /comf find <x> <y> commands to search Community Member database for various stuff.

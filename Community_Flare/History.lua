@@ -286,10 +286,10 @@ function NS.CommunityFlare_Get_History_List(names)
 					local cmc = tonumber(history.cmc) or 0
 					local ncm = tonumber(history.ncm) or 0
 					local lcmt = tonumber(history.lcmt) or 0
-					tinsert(list, strformat("%s;%d;%d;%d;%d;%d;%d;%d", v, firstseen, lastseen, lastgrouped, gmc, cmc, ncm, lcmt))
+					tinsert(list, strformat("%s,%d,%d,%d,%d,%d,%d,%d", v, firstseen, lastseen, lastgrouped, gmc, cmc, ncm, lcmt))
 				else
 					-- insert
-					tinsert(list, strformat("%s;nil", v))
+					tinsert(list, strformat("%s,nil", v))
 				end
 			end
 		end
@@ -304,7 +304,7 @@ function NS.CommunityFlare_Get_History_List(names)
 					text = v
 				else
 					-- add text
-					text = strformat("%s,%s", text, v)
+					text = strformat("%s;%s", text, v)
 				end
 			end
 		end

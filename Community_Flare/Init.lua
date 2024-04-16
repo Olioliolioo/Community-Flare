@@ -25,6 +25,7 @@ local GetChannelName                            = _G.GetChannelName
 local GetLFGRoleUpdate                          = _G.GetLFGRoleUpdate
 local GetNumGroupMembers                        = _G.GetNumGroupMembers
 local GetNumSubgroupMembers                     = _G.GetNumSubgroupMembers
+local GetTime                                   = _G.GetTime
 local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local PromoteToLeader                           = _G.PromoteToLeader
@@ -95,6 +96,7 @@ NS.HearthStoneSpells = {
 	[391042] = "Ohn'ir Windsage's Hearthstone",
 	[420418] = "Deepdweller's Earthen Hearthstone",
 	[422284] = "Hearthstone of the Flame",
+	[431644] = "Stone of the Hearth",
 }
 
 -- teleport spells
@@ -964,9 +966,22 @@ end
 function NS.CommunityFlare_CheckForAura(unit, type, auraName)
 	-- save global variable if aura is active
 	NS.CommFlare.CF.HasAura = false
-	AuraUtilForEachAura(unit, type, nil, function(name, icon, ...)
+	AuraUtilForEachAura(unit, type, nil, function(...)
+		-- this aura?
+		local name, icon, count, debuffType, duration, expirationTime = ...
 		if (name == auraName) then
+			-- not created?
+			if (not NS.CommFlare.CF.AuraData) then
+				-- initialize
+				NS.CommFlare.CF.AuraData = {}
+			end
+
+			-- found aura / save data
 			NS.CommFlare.CF.HasAura = true
+			NS.CommFlare.CF.AuraData.name = name
+			NS.CommFlare.CF.AuraData.duration = duration
+			NS.CommFlare.CF.AuraData.expirationTime = expirationTime
+			NS.CommFlare.CF.AuraData.timeLeft = expirationTime - GetTime()
 			return true
 		end
 	end)

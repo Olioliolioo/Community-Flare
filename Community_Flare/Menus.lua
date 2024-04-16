@@ -16,7 +16,7 @@ local type                                      = _G.type
 local strformat                                 = _G.string.format
 
 -- show history
-function NS.CommunityFlare_Show_History(...)
+function NS.CommunityFlare_Show_History(dropdown)
 	-- find member
 	local player = NS.CommFlare.CF.MenuData.player
 	local member = NS.CommunityFlare_GetCommunityMember(player)
@@ -92,11 +92,35 @@ function NS.CommunityFlare_Show_History(...)
 	end
 end
 
--- drop down options
-NS.CommunityFlare_DropDownOptions = {
+-- request party lead
+function NS.CommunityFlare_Request_Party_Leader(dropdown)
+	-- send addon message to party
+	NS.CommFlare:SendCommMessage(ADDON_NAME, "REQUEST_PARTY_LEAD", "PARTY")
+end
+
+-- drop down options for community member list
+NS.CommunityFlare_CommunityMemberList_DropDownOptions = {
 	{
 		text = L["Last Seen Around?"],
 		func = NS.CommunityFlare_Show_History,
+	},
+}
+
+-- drop down options for party list
+NS.CommunityFlare_PartyList_DropDownOptions = {
+	{
+		text = L["Request Party Leader"],
+		func = NS.CommunityFlare_Request_Party_Leader,
+		show = function()
+			-- are you not group leader currently?
+			if (NS.CommunityFlare_IsGroupLeader() == false) then
+				-- show
+				return true
+			end
+
+			-- hide
+			return false
+		end,
 	},
 }
 
@@ -104,8 +128,8 @@ NS.CommunityFlare_DropDownOptions = {
 function NS.CommunityFlare_OnEvent(dropdown, event, options)
 	-- has which menu?
 	if (dropdown.which) then
-		-- community member?
-		local menuFound = false
+		-- community member list?
+		local menuOptions = nil
 		if (dropdown.which == "COMMUNITIES_WOW_MEMBER") then
 			-- found club info?
 			local club = dropdown.clubInfo
@@ -114,27 +138,43 @@ function NS.CommunityFlare_OnEvent(dropdown, event, options)
 				local name = dropdown.name
 				local server = dropdown.server
 				if (server == nil) then
+					-- use player server name
 					server = NS.CommFlare.CF.PlayerServerName
 				end
 
-				-- save menu data
-				menuFound = true
+				-- setup stuff
+				menuOptions = NS.CommunityFlare_CommunityMemberList_DropDownOptions
 				NS.CommFlare.CF.MenuData.which = dropdown.which
 				NS.CommFlare.CF.MenuData.clubInfo = dropdown.clubInfo
 				NS.CommFlare.CF.MenuData.clubMemberInfo = dropdown.clubMemberInfo
 				NS.CommFlare.CF.MenuData.player = strformat("%s-%s", name, server)
 			end
+		-- party?
+		elseif (dropdown.which == "PARTY") then
+			-- setup name / server
+			local name = dropdown.name
+			local server = dropdown.server
+			if (server == nil) then
+				-- use player server name
+				server = NS.CommFlare.CF.PlayerServerName
+			end
+
+			-- setup stuff
+			menuOptions = NS.CommunityFlare_PartyList_DropDownOptions
+			NS.CommFlare.CF.MenuData.unit = dropdown.unit
+			NS.CommFlare.CF.MenuData.which = dropdown.which
+			NS.CommFlare.CF.MenuData.player = strformat("%s-%s", name, server)
 		end
 
-		-- menu found?
-		if (menuFound == true) then
+		-- found menu options?
+		if (menuOptions) then
 			-- showing?
 			if (event == "OnShow") then
 				-- add the dropdown options to the options table
 				local index = 0
-				for i = 1, #NS.CommunityFlare_DropDownOptions do
+				for i = 1, #menuOptions do
 					-- can show?
-					local option = NS.CommunityFlare_DropDownOptions[i]
+					local option = menuOptions[i]
 					if (not option.show or option.show()) then
 						-- add menu option
 						index = index + 1

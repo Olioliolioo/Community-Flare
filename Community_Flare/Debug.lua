@@ -53,7 +53,7 @@ function NS.CommunityFlare_Process_Debug_Command(sender, args)
 		end
 
 		-- send number of battlefield scores
-		SetBattlefieldScoreFaction()
+		SetBattlefieldScoreFaction(-1)
 		local scores = GetNumBattlefieldScores()
 		NS.CommunityFlare_SendMessage(sender, strformat("%s: %d", subcommand, scores))
 	elseif (subcommand == "runtime") then

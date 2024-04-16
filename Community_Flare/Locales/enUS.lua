@@ -194,8 +194,11 @@ L["%s: No subscribed clubs found."] = true
 L["%s: Removed %d %s members from the database."] = true
 L["Around"] = true
 L["Count: %d"] = true
+L["Inactive: %s"] = true
 L["is NOT in the Database."] = true
 L["Moved: %s to %s"] = true
+L["No Completed Matches: %s"] = true
+L["No Grouped Matches: %s"] = true
 L["Not Member: %s"] = true
 L["Not seen recently."] = true
 
@@ -284,6 +287,7 @@ L["Last Community Message Sent"] = true
 L["Last Grouped"] = true
 L["Last Seen"] = true
 L["Last Seen Around?"] = true
+L["Request Party Leader"] = true
 
 -- Social.lua
 L["%s: Group%d = %d Members"] = true

@@ -58,6 +58,7 @@ local GetCVarDefault                            = _G.C_CVar.GetCVarDefault
 local SetCVar                                   = _G.C_CVar.SetCVar
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local MapGetMapInfo                             = _G.C_Map.GetMapInfo
+local MapCanSetUserWaypointOnMap                = _G.C_Map.CanSetUserWaypointOnMap
 local PartyInfoGetInviteReferralInfo            = _G.C_PartyInfo.GetInviteReferralInfo
 local PartyInfoIsPartyFull                      = _G.C_PartyInfo.IsPartyFull
 local PartyInfoLeaveParty                       = _G.C_PartyInfo.LeaveParty
@@ -2680,6 +2681,45 @@ function NS.CommFlare:Community_Flare_OnCommReceived(prefix, message, distributi
 					local message = strformat("READY_CHECK:%s:%s", NS.CommunityFlare_Version, NS.CommunityFlare_Build)
 					NS.CommFlare:SendCommMessage(ADDON_NAME, message, "PARTY")
 				end
+			-- request party lead?
+			elseif (message:find("REQUEST_PARTY_LEAD")) then
+				-- are you group leader?
+				if (NS.CommunityFlare_IsGroupLeader() == true) then
+					-- always use full names
+					player = NS.CommunityFlare_GetFullName(player)
+					sender = NS.CommunityFlare_GetFullName(sender)
+					local member1 = NS.CommunityFlare_GetCommunityMember(player)
+					local member2 = NS.CommunityFlare_GetCommunityMember(sender)
+
+					-- player not found?
+					if (not member1) then
+						-- force max priority
+						member1 = { ["priority"] = NS.CommFlare.CF.MaxPriority }
+					-- no priority?
+					elseif (not member1.priority) then
+						-- force max priority
+						member1.priority = NS.CommFlare.CF.MaxPriority
+					end
+
+					-- sender not found?
+					if (not member2) then
+						-- force max priority
+						member2 = { ["priority"] = 999 }
+					-- no priority?
+					elseif (not member2.priority) then
+						-- force max priority
+						member2.priority = NS.CommFlare.CF.MaxPriority
+					end
+
+					-- priority in check?
+					if (member1 and member1.priority and member2 and member2.priority) then
+						-- sender has equal or better priority?
+						if (member1.priority >= member2.priority) then
+							-- process pass leadership
+							NS.CommunityFlare_Process_Pass_Leadership(sender)
+						end
+					end
+				end
 			end
 		end
 	end
@@ -2699,9 +2739,6 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 	elseif (lower == "deployed") then
 		-- check for deployed players
 		NS.CommunityFlare_Check_For_Deployed_Players()
-	--elseif (lower == "dump") then
-	--	-- copy CF to global (for debugging)
-	--	CommFlare = NS.CommFlare.CF
 	elseif (lower == "inactive") then
 		-- check for inactive players
 		print(L["Checking for inactive players"])

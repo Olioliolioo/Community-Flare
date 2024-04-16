@@ -125,6 +125,82 @@ function NS.CommunityFlare_Social_Queues_Count_All_Members()
 	return count
 end
 
+-- find queues by map name
+function NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
+	-- process text
+	local mapName = "Random Epic Battleground"
+	if (text:find(",")) then
+		-- split arguments
+		local args = {strsplit(",", text)}
+		if (args[2]) then
+			-- save map name
+			mapName = args[2]
+		end
+	end
+
+	-- process all
+	local list = {}
+	for k,v in pairs (NS.CommFlare.CF.SocialQueues) do
+		-- has all needed info?
+		if (v.leader and v.leader.name and v.leader.realm and v.leader.guid and v.members) then
+			-- process queues
+			local hasTracked = false
+			for k2,v2 in pairs(v.queues) do
+				-- has queue data?
+				if (v2.queueData and v2.queueData.mapName) then
+					-- map name matches?
+					if (mapName == v2.queueData.mapName) then
+						-- finished
+						hasTracked = true
+						break
+					end
+				end
+			end
+
+			-- has tracked?
+			if (hasTracked == true) then
+				-- popped?
+				local status = ""
+				if (v.popped > 0) then
+					-- P for popped
+					status = "P"
+				else
+					-- Q for queued
+					status = "Q"
+				end
+
+				-- build party string
+				local count = strformat("%d/5", #v.members)
+				local leader = strformat("%s-%s", v.leader.name, v.leader.realm)
+				local text = strformat("%s,%s,%s,%s,%s", k, status, v.leader.guid, leader, count)
+				tinsert(list, text)
+			end
+		end
+	end
+
+	-- process all lists
+	local text = nil
+	for k,v in pairs(list) do
+		-- first?
+		if (not text) then
+			-- start queues
+			text = strformat("%s", v)
+		else
+			-- append queues
+			text = strformat("%s;%s", text, v)
+		end
+	end
+
+	-- no text?
+	if (not text) then
+		-- none
+		text = "None"
+	end
+
+	-- return text
+	return text
+end
+
 -- count all members for social queues not popped
 function NS.CommunityFlare_Social_Queues_Count_All_Members_Not_Popped()
 	-- process all
