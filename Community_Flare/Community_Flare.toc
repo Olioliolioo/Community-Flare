@@ -1,7 +1,7 @@
-## Interface: 100206
+## Interface: 100207
 ## Title: Community Flare
-## Version: v1.12
-## X-Build: 112001
+## Version: v1.13
+## X-Build: 113001
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
 ## SavedVariablesPerCharacter: CommFlareCharDB
@@ -42,4 +42,5 @@ History.lua
 Init.lua
 Menus.lua
 Social.lua
+Specialization.lua
 Transmission.lua

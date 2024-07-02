@@ -346,12 +346,19 @@ function NS.CommunityFlare_LoadSession()
 	-- load global stuff
 	NS.CommFlare.CF.SocialQueues = NS.globalDB.global.SocialQueues or {}
 
-	-- save profile stuff
+	-- load profile stuff
 	NS.CommFlare.CF.PartyGUID = NS.charDB.profile.PartyGUID
 	NS.CommFlare.CF.MatchStatus = NS.charDB.profile.MatchStatus
 	NS.CommFlare.CF.LocalQueues = NS.charDB.profile.LocalQueues or {}
 
-	-- battleground specific data
+	-- load match log stuff
+	NS.CommFlare.CF.LogListCount = NS.charDB.profile.LogListCount
+	NS.CommFlare.CF.MatchEndTime = NS.charDB.profile.MatchEndTime
+	NS.CommFlare.CF.MatchStartDate = NS.charDB.profile.MatchStartDate
+	NS.CommFlare.CF.MatchStartTime = NS.charDB.profile.MatchStartTime
+	NS.CommFlare.CF.MatchStartLogged = NS.charDB.profile.MatchStartLogged
+
+	-- load battleground specific data
 	NS.CommFlare.CF.ASH = NS.charDB.profile.ASH or {}
 	NS.CommFlare.CF.AV = NS.charDB.profile.AV or {}
 	NS.CommFlare.CF.IOC = NS.charDB.profile.IOC or {}
@@ -383,12 +390,26 @@ function NS.CommunityFlare_SaveSession()
 		NS.charDB.profile.AV = NS.CommFlare.CF.AV or {}
 		NS.charDB.profile.IOC = NS.CommFlare.CF.IOC or {}
 		NS.charDB.profile.WG = NS.CommFlare.CF.WG or {}
+
+		-- save match log stuff
+		NS.charDB.profile.LogListCount = NS.CommFlare.CF.LogListCount
+		NS.charDB.profile.MatchEndTime = NS.CommFlare.CF.MatchEndTime
+		NS.charDB.profile.MatchStartDate = NS.CommFlare.CF.MatchStartDate
+		NS.charDB.profile.MatchStartTime = NS.CommFlare.CF.MatchStartTime
+		NS.charDB.profile.MatchStartLogged = NS.CommFlare.CF.MatchStartLogged
 	else
 		-- reset settings
 		NS.charDB.profile.ASH = {}
 		NS.charDB.profile.AV = {}
 		NS.charDB.profile.IOC = {}
 		NS.charDB.profile.WG = {}
+
+		-- reset match log stuff
+		NS.charDB.profile.LogListCount = 0
+		NS.charDB.profile.MatchEndTime = 0
+		NS.charDB.profile.MatchStartDate = 0
+		NS.charDB.profile.MatchStartTime = 0
+		NS.charDB.profile.MatchStartLogged = false
 	end
 
 	-- debug mode?
@@ -431,7 +452,8 @@ function NS.CommunityFlare_ReaddCommunityChatWindow(clubId, streamId)
 		-- add channel
 		ChatFrame_AddNewCommunitiesChannel(1, clubId, streamId, nil)
 	elseif (not chatFrameID or (chatFrameID == 0)) then
-		-- remove channel
+		-- remove channel (twice)
+		ChatFrame_RemoveCommunitiesChannel(ChatFrame1, clubId, streamId, false)
 		ChatFrame_RemoveCommunitiesChannel(ChatFrame1, clubId, streamId, false)
 
 		-- add channel
@@ -744,6 +766,23 @@ function NS.CommunityFlare_GetPartyMembers()
 	return members
 end
 
+-- get max party count
+function NS.CommunityFlare_GetMaxPartyCount()
+	-- get max count
+	local maxCount = NS.charDB.profile.maxPartySize
+	if (not maxCount or (type(maxCount) ~= "number")) then
+		-- force 5
+		maxCount = 5
+	elseif ((maxCount < 1) or (maxCount > 5)) then
+		-- reset max party size
+		NS.charDB.profile.maxPartySize = 5
+		maxCount = NS.charDB.profile.maxPartySize
+	end
+
+	-- return maxCount
+	return maxCount
+end
+
 -- get party count
 function NS.CommunityFlare_GetPartyCount()
 	-- in group and not in raid?
@@ -778,8 +817,9 @@ function NS.CommunityFlare_GetGroupCount()
 		NS.CommFlare.CF.Count = 1
 	end
 
-	-- return x/5 count
-	return strformat("%d/5", NS.CommFlare.CF.Count)
+	-- return x/y count
+	local maxCount = NS.CommunityFlare_GetMaxPartyCount()
+	return strformat("%d/%d", NS.CommFlare.CF.Count, maxCount)
 end
 
 -- get group members
@@ -905,6 +945,12 @@ end
 
 -- send Battle.NET data
 function NS.CommunityFlare_BNSendData(player, data)
+	-- no player given?
+	if (not player) then
+		-- finished
+		return
+	end
+
 	-- string?
 	local presenceID = nil
 	if (type(player) == "string") then
@@ -923,7 +969,7 @@ function NS.CommunityFlare_BNSendData(player, data)
 	end
 
 	-- found presenceID?
-	if (presenceID) then
+	if (presenceID and (presenceID > 0)) then
 		-- send data
 		BNSendGameData(presenceID, "CommFlare", data)
 	end

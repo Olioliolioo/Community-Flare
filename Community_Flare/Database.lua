@@ -44,12 +44,13 @@ function NS.CommunityFlare_Get_Clubs()
 		-- community?
 		if (v.clubType == Enum.ClubType.Character) then
 			-- first?
+			local current = strformat("%s,%s,%s,%s,%s,%s", tostring(v.clubId), tostring(v.name), tostring(v.shortName), tostring(v.memberCount), tostring(v.crossFaction), tostring(v.faction))
 			if (not text) then
 				-- initialize
-				text = strformat("%s,%s,%s,%s,%s", tostring(v.clubId), v.name, v.shortName, tostring(v.memberCount), tostring(v.crossFaction))
+				text = current
 			else
 				-- append
-				text = strformat("%s;%s,%s,%s,%s,%s", text, tostring(v.clubId), v.name, v.shortName, tostring(v.memberCount), tostring(v.crossFaction))
+				text = strformat("%s;%s", text, current)
 			end
 		end 
 	end

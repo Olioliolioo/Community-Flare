@@ -1,3 +1,10 @@
+v1.13 features:
+-New Command: /comf debug added to better help with debugging issues for Mesostealthy & others to report. (Must have Debug Mode enabled to utilize.)
+-New Option: Always save Combat Log inside PVP content, will always save combat logs for PVP matches.
+-When joining tracked PVP Queues, it will now report your current faction when reporting.
+-BUGFIX: If /reload used during Battleground, match data/roster was not saved into the match log list.
+-Bumped TOC to v10.2.7
+
 v1.12 features:
 -New Feature: Right click on your Party Members to "Request Party Lead". (They must have Community Flare v1.12+ as well.)
 -BUGFIX: Fixed some issues with the Community Leaders priority being updated properly.

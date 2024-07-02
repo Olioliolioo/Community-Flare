@@ -12,9 +12,11 @@ end
 local _G                                        = _G
 local GetBattlefieldInstanceRunTime             = _G.GetBattlefieldInstanceRunTime
 local GetNumBattlefieldScores                   = _G.GetNumBattlefieldScores
+local PVPMatchScoreboard                        = _G.PVPMatchScoreboard
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local PvPGetActiveMatchState                    = _G.C_PvP.GetActiveMatchState
 local PvPGetScoreInfo                           = _G.C_PvP.GetScoreInfo
+local TimerAfter                                = _G.C_Timer.After
 local tonumber                                  = _G.tonumber
 local type                                      = _G.type
 local strformat                                 = _G.string.format
@@ -52,10 +54,22 @@ function NS.CommunityFlare_Process_Debug_Command(sender, args)
 			return
 		end
 
-		-- send number of battlefield scores
-		SetBattlefieldScoreFaction(-1)
-		local scores = GetNumBattlefieldScores()
-		NS.CommunityFlare_SendMessage(sender, strformat("%s: %d", subcommand, scores))
+		-- battlefield score needs updating?
+		local timer = 0.0
+		if (PVPMatchScoreboard.selectedTab ~= 1) then
+			-- update battlefield score
+			SetBattlefieldScoreFaction(-1)
+
+			-- delay 0.5 seconds
+			timer = 0.5
+		end
+
+		-- start processing
+		TimerAfter(timer, function()
+			-- send message
+			local scores = GetNumBattlefieldScores()
+			NS.CommunityFlare_SendMessage(sender, strformat("%s: %d", subcommand, scores))
+		end)
 	elseif (subcommand == "runtime") then
 		-- not active match?
 		subcommand = "RunTime"

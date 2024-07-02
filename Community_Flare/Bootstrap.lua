@@ -45,6 +45,7 @@ NS.CommFlare.CF = {
 	MapName = "N/A",
 	MatchEndDate = "",
 	MatchStartDate = "",
+	PlayerFaction = "",
 	PlayerServerName = "",
 	TurnSpeed = "",
 
@@ -58,8 +59,10 @@ NS.CommFlare.CF = {
 	InitialLogin = false,
 	Invisible = false,
 	HasAura = false,
+	MatchStartLogged = false,
 	NeedAddonData = false,
 	Popped = false,
+	PvpLoggingCombat = false,
 	Reloaded = false,
 
 	-- numbers
@@ -73,6 +76,8 @@ NS.CommFlare.CF = {
 	HideIndex = 0,
 	IsHealer = 0,
 	IsTank = 0,
+	LastBossRW = 0,
+	LastMageRW = 0,
 	LeftTime = 0,
 	LogListCount = 0,
 	MapID = 0,
@@ -126,6 +131,7 @@ NS.CommFlare.CF = {
 	ReadyCheck = {},
 	RoleChosen = {},
 	RoleCounts = {},
+	RosterList = {},
 	SocialQueues = {},
 	StatusCheck = {},
 	WidgetInfo = {},
@@ -188,7 +194,7 @@ function NS.CommFlare:HandlePendingInviteConfirmation(invite)
 	end
 end
 
--- handle incoming commands
+-- handle floating chat frame events
 function NS.CommFlare:FloatingChatFrameManager_OnEvent(self, event, ...)
 	-- internal command?
 	local text, sender, _, _, _, _, _, _, _, _, _, _, bnSenderID = ...
@@ -211,6 +217,7 @@ function NS.CommFlare:FloatingChatFrameManager_OnEvent(self, event, ...)
 	end
 end
 
+-- global defaults
 NS.GlobalDefaults = {
 	-- global
 	global = {
@@ -253,6 +260,9 @@ function NS.CommFlare:OnInitialize()
 		-- convert to number
 		NS.charDB.profile.uninvitePlayersAFK = tonumber(NS.charDB.profile.uninvitePlayersAFK)
 	end
+
+	-- build classes
+	NS.CommunityFlare_Build_Classes()
 end
 
 -- addon compartment on click
