@@ -1,3 +1,21 @@
+v1.14 features:
+-New Command: /comf report added to send your current queues to community, with auto INV message if enabled & party has room.
+-!status check for Battle for Wintergrasp now reports Vehicle counts.
+-!status check now reports status for Arathi Basin.
+-!status check now reports status for Brawl: Southshore vs. Tarren Mill.
+-!status check now reports status for Deep Wind Gorge.
+-!status check now reports status for Eye of the Storm.
+-!status check now reports status for Seething Shore.
+-!status check now reports status for Silvershard Mines.
+-!status check now reports status for Temple of Kotmogu.
+-!status check now reports status for The Battle for Gilneas.
+-!status check now reports status for Twin Peaks Gulch.
+-!status check now reports status for Warsong Gulch.
+--Player you message !status must have v1.14 or higher for these to report back!
+-BUGFIX: Fixed Block game menu hotkeys inside PVP content. (This is disabled by default, only enable if you know what it's doing!)
+-BUGFIX: Fixed the Context Menus to work with the new UIDropDownMenu system.
+-Bumped TOC to v11.0.0
+
 v1.13 features:
 -New Command: /comf debug added to better help with debugging issues for Mesostealthy & others to report. (Must have Debug Mode enabled to utilize.)
 -New Option: Always save Combat Log inside PVP content, will always save combat logs for PVP matches.

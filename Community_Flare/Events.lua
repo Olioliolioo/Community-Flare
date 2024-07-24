@@ -13,7 +13,6 @@ local _G                                        = _G
 local AcceptGroup                               = _G.AcceptGroup
 local AchievementFrame_LoadUI                   = _G.AchievementFrame_LoadUI
 local ChatFrame_AddMessageEventFilter           = _G.ChatFrame_AddMessageEventFilter
-local ClassTalentFrame_LoadUI                   = _G.ClassTalentFrame_LoadUI
 local CollectionsJournal_LoadUI                 = _G.CollectionsJournal_LoadUI
 local CombatLogGetCurrentEventInfo              = _G.CombatLogGetCurrentEventInfo
 local Communities_LoadUI                        = _G.Communities_LoadUI
@@ -40,6 +39,7 @@ local InCombatLockdown                          = _G.InCombatLockdown
 local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local LoggingCombat                             = _G.LoggingCombat
+local PlayerSpellsFrame_LoadUI                  = _G.PlayerSpellsFrame_LoadUI
 local PromoteToAssistant                        = _G.PromoteToAssistant
 local PVPMatchScoreboard                        = _G.PVPMatchScoreboard
 local RaidWarningFrame_OnEvent                  = _G.RaidWarningFrame_OnEvent
@@ -392,87 +392,39 @@ function NS.CommFlare:ToggleCharacter(tab, onlyShow)
 	end
 end
 
--- process spellbook micro button clicked
-function NS.CommFlare:SpellbookMicroButton_OnClick(self, ...)
+-- process profession micro button clicked
+function NS.CommFlare:ProfessionMicroButton_OnClick(self, ...)
 	-- block game menu hot keys enabled?
 	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- allowed
-		NS.CommFlare.CF.AllowSpellBookFrame = true
+		NS.CommFlare.CF.AllowProfessionsBookFrame = true
 	end
 
 	-- not in combat lockdown?
 	if (InCombatLockdown() ~= true) then
 		-- call original
-		NS.CommFlare.hooks[SpellbookMicroButton].OnClick(self, ...)
+		NS.CommFlare.hooks[ProfessionMicroButton].OnClick(self, ...)
 	else
 		-- always normal
-		SpellbookMicroButton:SetNormal()
+		ProfessionMicroButton:SetNormal()
 	end
 end
 
--- process spellbook toggle
-function NS.CommFlare:ToggleSpellBook(bookType)
-	-- block game menu hot keys enabled?
-	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
-		-- not shown?
-		local isShown = SpellBookFrame:IsShown()
-		if (isShown == false) then
-			-- not allowed?
-			if (NS.CommFlare.CF.AllowSpellBookFrame == false) then
-				-- inside pvp content?
-				local isArena = PvPIsArena()
-				local isBattleground = PvPIsBattleground()
-				if (isArena or isBattleground) then
-					-- finished
-					return
-				end
-			end
-		end	
-
-		-- disabled
-		NS.CommFlare.CF.AllowSpellBookFrame = false
-	end
-
-	-- not in combat lockdown?
-	if (InCombatLockdown() ~= true) then
-		-- call original
-		NS.CommFlare.hooks.ToggleSpellBook(bookType)
-	end
-end
-
--- process talent micro button clicked
-function NS.CommFlare:TalentMicroButton_OnClick(self, ...)
-	-- block game menu hot keys enabled?
-	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
-		-- allowed
-		NS.CommFlare.CF.AllowTalentFrame = true
-	end
-
-	-- not in combat lockdown?
-	if (InCombatLockdown() ~= true) then
-		-- call original
-		NS.CommFlare.hooks[TalentMicroButton].OnClick(self, ...)
-	else
-		-- always normal
-		TalentMicroButton:SetNormal()
-	end
-end
-
--- process talent toggle
-function NS.CommFlare:ToggleTalentFrame(suggestedTab, inspectUnit)
+-- process professions toggle
+function NS.CommFlare:ToggleProfessionsBook(bookType)
 	-- block game menu hot keys enabled?
 	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
 		-- not loaded yet?
-		if (not ClassTalentFrame) then
+		if (not ProfessionsBookFrame) then
 			-- load talent framework
-			ClassTalentFrame_LoadUI()
+			ProfessionsBook_LoadUI()
 		end
 
 		-- not shown?
-		local isShown = ClassTalentFrame:IsShown()
+		local isShown = ProfessionsBookFrame:IsShown()
 		if (isShown == false) then
 			-- not allowed?
-			if (NS.CommFlare.CF.AllowTalentFrame == false) then
+			if (NS.CommFlare.CF.AllowProfessionsBookFrame == false) then
 				-- inside pvp content?
 				local isArena = PvPIsArena()
 				local isBattleground = PvPIsBattleground()
@@ -484,13 +436,67 @@ function NS.CommFlare:ToggleTalentFrame(suggestedTab, inspectUnit)
 		end	
 
 		-- disabled
-		NS.CommFlare.CF.AllowTalentFrame = false
+		NS.CommFlare.CF.AllowProfessionsBookFrame = false
 	end
 
 	-- not in combat lockdown?
 	if (InCombatLockdown() ~= true) then
 		-- call original
-		NS.CommFlare.hooks.ToggleTalentFrame(suggestedTab, inspectUnit)
+		NS.CommFlare.hooks.ToggleProfessionsBook(bookType)
+	end
+end
+
+-- process player spells micro button clicked
+function NS.CommFlare:PlayerSpellsMicroButton_OnClick(self, ...)
+	-- block game menu hot keys enabled?
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
+		-- allowed
+		NS.CommFlare.CF.AllowPlayerSpellsFrame = true
+	end
+
+	-- not in combat lockdown?
+	if (InCombatLockdown() ~= true) then
+		-- call original
+		NS.CommFlare.hooks[PlayerSpellsMicroButton].OnClick(self, ...)
+	else
+		-- always normal
+		PlayerSpellsMicroButton:SetNormal()
+	end
+end
+
+-- process player spells toggle
+function NS.CommFlare:TogglePlayerSpellsFrame(suggestedTab, inspectUnit)
+	-- block game menu hot keys enabled?
+	if (NS.charDB.profile.blockGameMenuHotKeys == true) then
+		-- not loaded yet?
+		if (not TogglePlayerSpellsFrame) then
+			-- load talent framework
+			PlayerSpellsFrame_LoadUI()
+		end
+
+		-- not shown?
+		local isShown = PlayerSpellsFrame:IsShown()
+		if (isShown == false) then
+			-- not allowed?
+			if (NS.CommFlare.CF.AllowPlayerSpellsFrame == false) then
+				-- inside pvp content?
+				local isArena = PvPIsArena()
+				local isBattleground = PvPIsBattleground()
+				if (isArena or isBattleground) then
+					-- finished
+					return
+				end
+			end
+		end	
+
+		-- disabled
+		NS.CommFlare.CF.AllowPlayerSpellsFrame = false
+	end
+
+	-- not in combat lockdown?
+	if (InCombatLockdown() ~= true) then
+		-- call original
+		NS.CommFlare.hooks.PlayerSpellsFrame(suggestedTab, inspectUnit)
 	end
 end
 
@@ -796,14 +802,14 @@ function NS.CommunityFlare_Setup_BlockGameMenuHooks()
 	NS.CommFlare:RawHookScript(CharacterMicroButton, "OnClick", "CharacterMicroButton_OnClick")
 
 	-- hooks to block spellbook frame inside pvp content
-	NS.CommFlare.CF.AllowSpellBookFrame = false
-	NS.CommFlare:RawHook("ToggleSpellBook", true)
-	NS.CommFlare:RawHookScript(SpellbookMicroButton, "OnClick", "SpellbookMicroButton_OnClick")
+	NS.CommFlare.CF.AllowProfessionsBookFrame = false
+	NS.CommFlare:RawHook("ToggleProfessionsBook", true)
+	NS.CommFlare:RawHookScript(ProfessionMicroButton, "OnClick", "ProfessionMicroButton_OnClick")
 
 	-- hooks to block talent frame inside pvp content
-	NS.CommFlare.CF.AllowTalentFrame = false
-	NS.CommFlare:RawHook("ToggleTalentFrame", true)
-	NS.CommFlare:RawHookScript(TalentMicroButton, "OnClick", "TalentMicroButton_OnClick")
+	NS.CommFlare.CF.AllowPlayerSpellsFrame = false
+	NS.CommFlare:RawHook("TogglePlayerSpellsFrame", true)
+	NS.CommFlare:RawHookScript(PlayerSpellsMicroButton, "OnClick", "PlayerSpellsMicroButton_OnClick")
 
 	-- hooks to block achievement frame inside pvp content
 	NS.CommFlare.CF.AllowAchievementFrame = false
@@ -913,19 +919,19 @@ function NS.CommFlare:CHAT_MSG_ADDON(msg, ...)
 				return
 			end
 
-			-- report to anyone?
-			if (NS.CommFlare.CF.StatusCheck and next(NS.CommFlare.CF.StatusCheck)) then
-				-- sanity check?
-				local h1, h1hp, h2, h2hp, h3, h3hp, a1, a1hp, a2, a2hp, a3, a3hp = strsplit(":", text)
-				local hGate1, hGate2, hGate3, aGate1, aGate2, aGate3 = tonumber(h1hp), tonumber(h2hp), tonumber(h3hp), tonumber(a1hp), tonumber(a2hp), tonumber(a3hp)
-				if (hGate1 and hGate2 and hGate3 and aGate1 and aGate2 and aGate3) then
-					-- find lowest gates
-					local allyLowest = math.min(aGate1, aGate2, aGate3) / 2400000 * 100
-					local hordeLowest = math.min(hGate1, hGate2, hGate3) / 2400000 * 100
+			-- sanity check?
+			local h1, h1hp, h2, h2hp, h3, h3hp, a1, a1hp, a2, a2hp, a3, a3hp = strsplit(":", text)
+			local hGate1, hGate2, hGate3, aGate1, aGate2, aGate3 = tonumber(h1hp), tonumber(h2hp), tonumber(h3hp), tonumber(a1hp), tonumber(a2hp), tonumber(a3hp)
+			if (hGate1 and hGate2 and hGate3 and aGate1 and aGate2 and aGate3) then
+				-- find lowest gates
+				local allyLowest = math.min(aGate1, aGate2, aGate3) / 2400000 * 100
+				local hordeLowest = math.min(hGate1, hGate2, hGate3) / 2400000 * 100
 
+				-- report to anyone?
+				local text = strformat(L["%s: Alliance Gate = %.1f, Horde Gate = %.1f"], L["Isle of Conquest"], allyLowest, hordeLowest)
+				if (NS.CommFlare.CF.StatusCheck and next(NS.CommFlare.CF.StatusCheck)) then
 					-- process all
 					local timer = 0.0
-					local text = strformat(L["%s: Alliance Gate = %.1f, Horde Gate = %.1f"], L["Isle of Conquest"], allyLowest, hordeLowest)
 					for k,v in pairs(NS.CommFlare.CF.StatusCheck) do
 						-- send replies staggered
 						TimerAfter(timer, function()
@@ -1033,6 +1039,29 @@ function NS.CommunityFlare_Event_Chat_Message_Party(...)
 		if (lower == "!cf") then
 			-- send community flare version number
 			NS.CommunityFlare_SendMessage(nil, strformat("%s: %s (%s)", NS.CommunityFlare_Title, NS.CommunityFlare_Version, NS.CommunityFlare_Build))
+		-- status check?
+		elseif (lower == "!status") then
+			-- are you group leader?
+			if (NS.CommunityFlare_IsGroupLeader() == true) then
+				-- inside battleground?
+				local timer = 0.0
+				if (PvPIsBattleground() == true) then
+					-- battlefield score needs updating?
+					if (PVPMatchScoreboard.selectedTab ~= 1) then
+						-- update battlefield score
+						SetBattlefieldScoreFaction(-1)
+
+						-- delay 0.5 seconds
+						timer = 0.5
+					end
+				end
+
+				-- start processing
+				TimerAfter(timer, function()
+					-- process status check
+					NS.CommunityFlare_Process_Status_Check(nil)
+				end)
+			end
 		end
 	end
 end
@@ -1094,7 +1123,7 @@ function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 		-- start processing
 		TimerAfter(timer, function()
 			-- update battleground / member / roster stuff
-			NS.CommunityFlare_Update_Battleground_Stuff(true)
+			NS.CommunityFlare_Update_Battleground_Stuff(true, true)
 			NS.CommunityFlare_Update_Member_Statistics("started")
 			NS.CommunityFlare_Match_Started_Log_Roster()
 		end)
@@ -2155,8 +2184,9 @@ function NS.CommFlare:PLAYER_ENTERING_WORLD(msg, ...)
 			NS.charDB.profile.communityPartyLeader = false
 		-- reloading?
 		elseif (isReloadingUi == true) then
-			-- reloaded
+			-- reload stuff
 			NS.CommFlare.CF.Reloaded = true
+			NS.CommFlare.CF.LocalQueues = NS.charDB.profile.LocalQueues or {}
 
 			-- update local group
 			NS.CommunityFlare_Update_Group("local")
@@ -2207,12 +2237,6 @@ function NS.CommFlare:PVP_MATCH_ACTIVE(msg)
 	-- initialize
 	NS.CommFlare.CF.RosterList = {}
 	NS.CommunityFlare_Initialize_Battleground_Status()
-
-	-- ASH exists?
-	if (not NS.CommFlare.CF.ASH) then
-		-- create base
-		NS.CommFlare.CF.ASH = {}
-	end
 
 	-- always reset ashran mages
 	NS.CommFlare.CF.ASH.Jeron = L["Up"]
@@ -2282,7 +2306,7 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		-- start processing
 		TimerAfter(timer, function()
 			-- update battleground / member / roster stuff
-			NS.CommunityFlare_Update_Battleground_Stuff(true)
+			NS.CommunityFlare_Update_Battleground_Stuff(true, false)
 			NS.CommunityFlare_Update_Member_Statistics("completed")
 			NS.CommunityFlare_Match_Started_Log_Roster()
 		end)
@@ -3094,6 +3118,16 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 			local groups = strsplit(";", popped)
 			DevTools_Dump(groups)
 		end
+	elseif (lower == "report") then
+		-- has last report message?
+		local text = NS.CommunityFlare_Get_Current_Queues()
+		if (text and (text ~= "")) then
+			-- send to community
+			NS.CommunityFlare_PopupBox("CommunityFlare_Send_Community_Dialog", text)
+		else
+			-- not currently in queue
+			print(strformat(L["%s: Not currently in queue."], NS.CommunityFlare_Title))
+		end
 	elseif (lower == "refresh") then
 		-- process club members
 		local status = NS.CommunityFlare_Process_Club_Members()
@@ -3108,6 +3142,148 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		-- reset members database
 		NS.globalDB.global.members = {}
 		print(L["Cleared members database!"])
+	elseif (lower == "widgets") then
+		-- process all top center widgets
+		local topCenter = C_UIWidgetManager.GetTopCenterWidgetSetID()
+		local widgets = C_UIWidgetManager.GetAllWidgetsBySetID(topCenter)
+		for _,w in pairs(widgets) do
+			-- display widget type
+			local widgetID = tonumber(w.widgetID)
+			local widgetType = tonumber(w.widgetType)
+			local widgetSetID = tonumber(w.widgetSetID)
+			print(strformat("ID: %d; Set: %d, Type: %d", widgetID, widgetSetID, widgetType))
+
+			-- save widget
+			NS.CommFlare.CF.WidgetCache[widgetID] = {}
+			NS.CommFlare.CF.WidgetCache[widgetID].Base = w
+
+			-- icon and text?
+			local widgetInfo = nil
+			if (widgetType == 0) then
+				-- get icon and text
+				widgetInfo = C_UIWidgetManager.GetIconAndTextWidgetVisualizationInfo(widgetID)
+				if (widgetInfo) then
+					-- display
+					widgetInfo.text = tostring(widgetInfo.text)
+					print(strformat("text: %s", widgetInfo.text))
+				end
+			-- status bar?
+			elseif (widgetType == 2) then
+				-- get status bar
+				widgetInfo = C_UIWidgetManager.GetStatusBarWidgetVisualizationInfo(widgetID)
+				if (widgetInfo) then
+					-- display
+					widgetInfo.text = tostring(widgetInfo.text)
+					widgetInfo.barValue = tostring(widgetInfo.barValue)
+					print(strformat("text: %s; bar: %s", widgetInfo.text, widgetInfo.barValue))
+				end
+			-- double status bar?
+			elseif (widgetType == 3) then
+				-- get double status bar
+				widgetInfo = C_UIWidgetManager.GetDoubleStatusBarWidgetVisualizationInfo(widgetID)
+				if (widgetInfo) then
+					-- display
+					widgetInfo.text = tostring(widgetInfo.text)
+					widgetInfo.leftBarValue = tostring(widgetInfo.leftBarValue)
+					widgetInfo.rightBarValue = tostring(widgetInfo.rightBarValue)
+					print(strformat("text: %s; left: %s; right: %s", widgetInfo.text, widgetInfo.leftBarValue, widgetInfo.rightBarValue))
+				end
+			-- text with state?
+			elseif (widgetType == 8) then
+				-- get text with state
+				widgetInfo = C_UIWidgetManager.GetTextWithStateWidgetVisualizationInfo(widgetID)
+				if (widgetInfo) then
+					-- display
+					widgetInfo.text = tostring(widgetInfo.text)
+					print(strformat("text: %s", widgetInfo.text))
+				end
+			-- todo
+			else
+				-- display
+				print(strformat("Widget Type: %d not processed yet.", widgetType))
+
+				-- process remaining types
+				if (widgetType == 1) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetCaptureBarWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 4) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetIconTextAndBackgroundWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 5) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetDoubleIconAndTextWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 6) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetStackedResourceTrackerWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 7) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetIconTextAndCurrenciesWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 9) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetHorizontalCurrenciesWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 10) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetBulletTextListWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 11) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetScenarioHeaderCurrenciesAndBackgroundWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 12) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetTextureAndTextVisualizationInfo(widgetID)
+				elseif (widgetType == 13) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetSpellDisplayVisualizationInfo(widgetID)
+				elseif (widgetType == 14) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetDoubleStateIconRowVisualizationInfo(widgetID)
+				elseif (widgetType == 15) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetTextureAndTextRowVisualizationInfo(widgetID)
+				elseif (widgetType == 16) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetZoneControlVisualizationInfo(widgetID)
+				elseif (widgetType == 17) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetCaptureZoneVisualizationInfo(widgetID)
+				elseif (widgetType == 18) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetTextureWithAnimationVisualizationInfo(widgetID)
+				elseif (widgetType == 19) then
+					-- get
+					widgetInfo =  	C_UIWidgetManager.GetDiscreteProgressStepsVisualizationInfo(widgetID)
+				elseif (widgetType == 20) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetScenarioHeaderTimerWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 21) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetTextColumnRowVisualizationInfo(widgetID)
+				elseif (widgetType == 22) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetSpacerVisualizationInfo(widgetID)
+				elseif (widgetType == 23) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetUnitPowerBarWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 24) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetFillUpFramesWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 25) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetTextWithSubtextWidgetVisualizationInfo(widgetID)
+				elseif (widgetType == 26) then
+					-- get
+					widgetType = C_WorldLootObject.GetWorldLootObjectInfo(widgetID)
+				elseif (widgetType == 27) then
+					-- get
+					widgetInfo = C_UIWidgetManager.GetItemDisplayVisualizationInfo(widgetID)
+				end
+			end
+
+			-- found widget info?
+			if (widgetInfo) then
+				-- save widget info
+				NS.CommFlare.CF.WidgetCache[widgetID].WidgetInfo = widgetInfo
+			end
+		end
 	elseif (lower == "usage") then
 		-- display usages
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["CPU Usage"], GetAddOnCPUUsage(ADDON_NAME)))
@@ -3168,7 +3344,7 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 			-- start processing
 			TimerAfter(timer, function()
 				-- display full battleground setup
-				NS.CommunityFlare_Update_Battleground_Stuff(true)
+				NS.CommunityFlare_Update_Battleground_Stuff(true, true)
 			end)
 		end
 	end

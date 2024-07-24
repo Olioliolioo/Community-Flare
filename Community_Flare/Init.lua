@@ -344,6 +344,7 @@ end
 -- load session variables
 function NS.CommunityFlare_LoadSession()
 	-- load global stuff
+	print("LoadSession")
 	NS.CommFlare.CF.SocialQueues = NS.globalDB.global.SocialQueues or {}
 
 	-- load profile stuff
@@ -359,10 +360,14 @@ function NS.CommunityFlare_LoadSession()
 	NS.CommFlare.CF.MatchStartLogged = NS.charDB.profile.MatchStartLogged
 
 	-- load battleground specific data
+	NS.CommFlare.CF.AB = NS.charDB.profile.AB or {}
 	NS.CommFlare.CF.ASH = NS.charDB.profile.ASH or {}
 	NS.CommFlare.CF.AV = NS.charDB.profile.AV or {}
+	NS.CommFlare.CF.BFG = NS.charDB.profile.BFG or {}
 	NS.CommFlare.CF.IOC = NS.charDB.profile.IOC or {}
+	NS.CommFlare.CF.SSvTM = NS.charDB.profile.SSvTM or {}
 	NS.CommFlare.CF.WG = NS.charDB.profile.WG or {}
+	NS.CommFlare.CF.WSG = NS.charDB.profile.WSG or {}
 
 	-- get MapID
 	NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
@@ -386,10 +391,14 @@ function NS.CommunityFlare_SaveSession()
 	-- currently in battleground?
 	if (PvPIsBattleground() == true) then
 		-- save any settings
+		NS.charDB.profile.AB = NS.CommFlare.CF.AB or {}
 		NS.charDB.profile.ASH = NS.CommFlare.CF.ASH or {}
 		NS.charDB.profile.AV = NS.CommFlare.CF.AV or {}
+		NS.charDB.profile.BFG = NS.CommFlare.CF.BFG or {}
 		NS.charDB.profile.IOC = NS.CommFlare.CF.IOC or {}
+		NS.charDB.profile.SSvTM = NS.CommFlare.CF.SSvTM or {}
 		NS.charDB.profile.WG = NS.CommFlare.CF.WG or {}
+		NS.charDB.profile.WSG = NS.CommFlare.CF.WSG or {}
 
 		-- save match log stuff
 		NS.charDB.profile.LogListCount = NS.CommFlare.CF.LogListCount
@@ -399,10 +408,14 @@ function NS.CommunityFlare_SaveSession()
 		NS.charDB.profile.MatchStartLogged = NS.CommFlare.CF.MatchStartLogged
 	else
 		-- reset settings
+		NS.charDB.profile.AB = {}
 		NS.charDB.profile.ASH = {}
 		NS.charDB.profile.AV = {}
+		NS.charDB.profile.BFG = {}
 		NS.charDB.profile.IOC = {}
+		NS.charDB.profile.SSvTM = {}
 		NS.charDB.profile.WG = {}
+		NS.charDB.profile.WSG = {}
 
 		-- reset match log stuff
 		NS.charDB.profile.LogListCount = 0

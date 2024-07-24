@@ -1,7 +1,7 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: Community Flare
-## Version: v1.13
-## X-Build: 113001
+## Version: v1.14
+## X-Build: 114001
 ## Author: Mesostealthy
 ## SavedVariables: CommunityFlareDB
 ## SavedVariablesPerCharacter: CommFlareCharDB
@@ -27,7 +27,6 @@ Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceComm-3.0\AceComm-3.0.xml
 Libs\AceTab-3.0\AceTab-3.0.xml
 Libs\AceSerializer-3.0\AceSerializer-3.0.xml
-Libs\LibDropDownExtension-1.0\LibDropDownExtension.lua
 Libs\LibDeflate\lib.xml
 
 Bootstrap.lua

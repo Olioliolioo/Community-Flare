@@ -37,10 +37,10 @@ local UnitFactionGroup                          = _G.UnitFactionGroup
 local UnitGUID                                  = _G.UnitGUID
 local UnitInRaid                                = _G.UnitInRaid
 local UnitName                                  = _G.UnitName
+local AreaPoiInfoGetAreaPOIForMap               = _G.C_AreaPoiInfo.GetAreaPOIForMap
 local AreaPoiInfoGetAreaPOIInfo                 = _G.C_AreaPoiInfo.GetAreaPOIInfo
 local BattleNetGetFriendGameAccountInfo         = _G.C_BattleNet.GetFriendGameAccountInfo
 local BattleNetGetFriendNumGameAccounts         = _G.C_BattleNet.GetFriendNumGameAccounts
-local SendAddonMessage                          = _G.C_ChatInfo.SendAddonMessage
 local MapGetBestMapForUnit                      = _G.C_Map.GetBestMapForUnit
 local MapGetMapInfo                             = _G.C_Map.GetMapInfo
 local PartyInfoIsPartyFull                      = _G.C_PartyInfo.IsPartyFull
@@ -225,10 +225,20 @@ end
 function NS.CommunityFlare_Initialize_Battleground_Status()
 	-- reset stuff
 	NS.CommFlare.CF.MapID = 0
+	NS.CommFlare.CF.AB = {}
 	NS.CommFlare.CF.ASH = {}
 	NS.CommFlare.CF.AV = {}
+	NS.CommFlare.CF.BFG = {}
+	NS.CommFlare.CF.DWG = {}
+	NS.CommFlare.CF.EOTS = {}
 	NS.CommFlare.CF.IOC = {}
+	NS.CommFlare.CF.SSH = {}
+	NS.CommFlare.CF.SSM = {}
+	NS.CommFlare.CF.SSvTM = {}
+	NS.CommFlare.CF.TOK = {}
+	NS.CommFlare.CF.TWP = {}
 	NS.CommFlare.CF.WG = {}
+	NS.CommFlare.CF.WSG = {}
 	NS.CommFlare.CF.MapInfo = {}
 	NS.CommFlare.CF.MatchStartTime = 0
 	NS.CommFlare.CF.Reloaded = false
@@ -530,6 +540,100 @@ function NS.CommunityFlare_Get_Current_Battleground_Status()
 
 		-- success
 		return true
+	-- ashran?
+	elseif (NS.CommFlare.CF.MapID == 1478) then
+		-- initialize
+		if (not NS.CommFlare.CF.ASH) then
+			NS.CommFlare.CF.ASH = { Jeron = L["Up"], Rylal = L["Up"] }
+		end
+		NS.CommFlare.CF.ASH.Scores = { Alliance = L["N/A"], Horde = L["N/A"] }
+
+		-- reloaded?
+		if (NS.CommFlare.CF.Reloaded == true) then
+			-- match maybe reloaded, use saved session
+			NS.CommFlare.CF.ASH.Jeron = NS.charDB.profile.ASH.Jeron
+			NS.CommFlare.CF.ASH.Rylai = NS.charDB.profile.ASH.Rylai
+		end
+
+		-- 1997 = widgetID for Score Remaining
+		NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1997)
+		if (NS.CommFlare.CF.WidgetInfo) then
+			-- set proper scores
+			NS.CommFlare.CF.ASH.Scores = { Alliance = NS.CommFlare.CF.WidgetInfo.leftBarValue, Horde = NS.CommFlare.CF.WidgetInfo.rightBarValue }
+		end
+
+		-- success
+		return true
+	-- battle for wintergrasp?
+	elseif (NS.CommFlare.CF.MapID == 1334) then
+		-- initialize
+		NS.CommFlare.CF.WG = {}
+		NS.CommFlare.CF.WG.Counts = { Towers = 0 }
+		NS.CommFlare.CF.WG.Vehicles = { Alliance = L["N/A"], Horde = L["N/A"] }
+		NS.CommFlare.CF.WG.TimeRemaining = L["Just entered match. Gates not opened yet!"]
+
+		-- get match type
+		NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
+		NS.CommFlare.CF.POIInfo = AreaPoiInfoGetAreaPOIInfo(NS.CommFlare.CF.MapID, 6056) -- Wintergrasp Fortress Gate
+		if (NS.CommFlare.CF.POIInfo and (NS.CommFlare.CF.POIInfo.textureIndex == 77)) then
+			-- mercenary?
+			if (NS.CommFlare.CF.HasAura == true) then
+				NS.CommFlare.CF.WG.Type = L["Offense"]
+			else
+				NS.CommFlare.CF.WG.Type = L["Defense"]
+			end
+		else
+			-- mercenary?
+			if (NS.CommFlare.CF.HasAura == true) then
+				NS.CommFlare.CF.WG.Type = L["Defense"]
+			else
+				NS.CommFlare.CF.WG.Type = L["Offense"]
+			end
+		end
+
+		-- initialize towers
+		NS.CommFlare.CF.WG.Towers = {
+			[1] = { id = 6066, name = L["East"], status = L["Up"] },
+			[2] = { id = 6065, name = L["South"], status = L["Up"] },
+			[3] = { id = 6067, name = L["West"], status = L["Up"] }
+		}
+
+		-- process towers
+		for i,v in ipairs(NS.CommFlare.CF.WG.Towers) do
+			NS.CommFlare.CF.WG.Towers[i].status = L["Up"]
+			NS.CommFlare.CF.POIInfo = AreaPoiInfoGetAreaPOIInfo(NS.CommFlare.CF.MapID, NS.CommFlare.CF.WG.Towers[i].id)
+			if (NS.CommFlare.CF.POIInfo and (NS.CommFlare.CF.POIInfo.textureIndex == 51)) then
+				NS.CommFlare.CF.WG.Towers[i].status = L["Destroyed"]
+				NS.CommFlare.CF.WG.Counts.Towers = NS.CommFlare.CF.WG.Counts.Towers + 1
+			end
+		end
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 542 = widgetID for Horde Vehicle count
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(542)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.WG.Vehicles.Horde = NS.CommFlare.CF.WidgetInfo.text
+			end
+
+			-- 543 = widgetID for Alliance Vehicle count
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(543)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.WG.Vehicles.Alliance = NS.CommFlare.CF.WidgetInfo.text
+			end
+
+			-- 1612 = widgetID for Time Remaining
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(1612)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.WG.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
+			end
+		end
+
+		-- success
+		return true
 	-- isle of conquest?
 	elseif (NS.CommFlare.CF.MapID == 169) then
 		-- initialize settings
@@ -580,97 +684,252 @@ function NS.CommunityFlare_Get_Current_Battleground_Status()
 
 		-- success
 		return true
-	-- battle for wintergrasp?
-	elseif (NS.CommFlare.CF.MapID == 1334) then
-		-- initialize
-		NS.CommFlare.CF.WG = {}
-		NS.CommFlare.CF.WG.Counts = { Towers = 0 }
-		NS.CommFlare.CF.WG.TimeRemaining = L["Just entered match. Gates not opened yet!"]
-
-		-- get match type
-		NS.CommunityFlare_CheckForAura("player", "HELPFUL", L["Mercenary Contract"])
-		NS.CommFlare.CF.POIInfo = AreaPoiInfoGetAreaPOIInfo(NS.CommFlare.CF.MapID, 6056) -- Wintergrasp Fortress Gate
-		if (NS.CommFlare.CF.POIInfo and (NS.CommFlare.CF.POIInfo.textureIndex == 77)) then
-			-- mercenary?
-			if (NS.CommFlare.CF.HasAura == true) then
-				NS.CommFlare.CF.WG.Type = L["Offense"]
-			else
-				NS.CommFlare.CF.WG.Type = L["Defense"]
-			end
-		else
-			-- mercenary?
-			if (NS.CommFlare.CF.HasAura == true) then
-				NS.CommFlare.CF.WG.Type = L["Defense"]
-			else
-				NS.CommFlare.CF.WG.Type = L["Offense"]
-			end
-		end
-
-		-- initialize towers
-		NS.CommFlare.CF.WG.Towers = {
-			[1] = { id = 6066, name = L["East"], status = L["Up"] },
-			[2] = { id = 6065, name = L["South"], status = L["Up"] },
-			[3] = { id = 6067, name = L["West"], status = L["Up"] }
-		}
-
-		-- process towers
-		for i,v in ipairs(NS.CommFlare.CF.WG.Towers) do
-			NS.CommFlare.CF.WG.Towers[i].status = L["Up"]
-			NS.CommFlare.CF.POIInfo = AreaPoiInfoGetAreaPOIInfo(NS.CommFlare.CF.MapID, NS.CommFlare.CF.WG.Towers[i].id)
-			if (NS.CommFlare.CF.POIInfo and (NS.CommFlare.CF.POIInfo.textureIndex == 51)) then
-				NS.CommFlare.CF.WG.Towers[i].status = L["Destroyed"]
-				NS.CommFlare.CF.WG.Counts.Towers = NS.CommFlare.CF.WG.Counts.Towers + 1
-			end
-		end
-
-		-- match not started yet?
-		if (NS.CommFlare.CF.MatchStatus ~= 1) then
-			-- 1612 = widgetID for Time Remaining
-			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(1612)
-			if (NS.CommFlare.CF.WidgetInfo) then
-				-- set proper time
-				NS.CommFlare.CF.WG.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
-			end
-		end
-
-		-- success
-		return true
-	-- ashran?
-	elseif (NS.CommFlare.CF.MapID == 1478) then
-		-- initialize
-		if (not NS.CommFlare.CF.ASH) then
-			NS.CommFlare.CF.ASH = { Jeron = L["Up"], Rylal = L["Up"] }
-		end
-		NS.CommFlare.CF.ASH.Scores = { Alliance = L["N/A"], Horde = L["N/A"] }
-
-		-- reloaded?
-		if (NS.CommFlare.CF.Reloaded == true) then
-			-- match maybe reloaded, use saved session
-			NS.CommFlare.CF.ASH.Jeron = NS.charDB.profile.ASH.Jeron
-			NS.CommFlare.CF.ASH.Rylai = NS.charDB.profile.ASH.Rylai
-		end
-
-		-- 1997 = widgetID for Score Remaining
-		NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1997)
-		if (NS.CommFlare.CF.WidgetInfo) then
-			-- set proper scores
-			NS.CommFlare.CF.ASH.Scores = { Alliance = NS.CommFlare.CF.WidgetInfo.leftBarValue, Horde = NS.CommFlare.CF.WidgetInfo.rightBarValue }
-		end
-
-		-- success
-		return true
 	-- southshore vs tarren mill?
 	elseif (NS.CommFlare.CF.MapID == 623) then
+		-- initialize
+		NS.CommFlare.CF.SSvTM = {}
+		NS.CommFlare.CF.SSvTM.HordeScore = L["N/A"]
+		NS.CommFlare.CF.SSvTM.AllianceScore = L["N/A"]
+		NS.CommFlare.CF.SSvTM.TimeRemaining = L["Just entered match. Gates not opened yet!"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 788 = widgetID for Alliance score
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(788)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper alliance score
+				NS.CommFlare.CF.SSvTM.AllianceScore = NS.CommFlare.CF.WidgetInfo.text
+			end
+
+			-- 789 = widgetID for Horde score
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(789)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper horde score
+				NS.CommFlare.CF.SSvTM.HordeScore = NS.CommFlare.CF.WidgetInfo.text
+			end
+
+			-- 790 = widgetID for Time Remaining
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(790)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.SSvTM.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
+			end
+		end
+
+		-- success
+		return true
+	-- arathi basin?
+	elseif (NS.CommFlare.CF.MapID == 1366) then
+		-- initialize
+		NS.CommFlare.CF.AB = {}
+		NS.CommFlare.CF.AB.HordeScore = L["N/A"]
+		NS.CommFlare.CF.AB.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1671 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1671)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.AB.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.AB.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- battle for gilneas?
+	elseif (NS.CommFlare.CF.MapID == 275) then
+		-- initialize
+		NS.CommFlare.CF.BFG = {}
+		NS.CommFlare.CF.BFG.HordeScore = L["N/A"]
+		NS.CommFlare.CF.BFG.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1671 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1671)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.BFG.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.BFG.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- deepwind gorge?
+	elseif (NS.CommFlare.CF.MapID == 1576) then
+		-- initialize
+		NS.CommFlare.CF.DWG = {}
+		NS.CommFlare.CF.DWG.HordeScore = L["N/A"]
+		NS.CommFlare.CF.DWG.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 2074 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(2074)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.DWG.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.DWG.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- eye of the storm?
+	elseif (NS.CommFlare.CF.MapID == 112) then
+		-- initialize
+		NS.CommFlare.CF.EOTS = {}
+		NS.CommFlare.CF.EOTS.HordeScore = L["N/A"]
+		NS.CommFlare.CF.EOTS.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1671 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1671)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.EOTS.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.EOTS.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- seething shore?
+	elseif (NS.CommFlare.CF.MapID == 907) then
+		-- initialize
+		NS.CommFlare.CF.SSH = {}
+		NS.CommFlare.CF.SSH.HordeScore = L["N/A"]
+		NS.CommFlare.CF.SSH.AllianceScore = L["N/A"]
+		NS.CommFlare.CF.SSH.TimeRemaining = L["Just entered match. Gates not opened yet!"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1688 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1688)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.SSH.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.SSH.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+
+			-- 1705 = widgetID for Time Remaining
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(1705)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.SSH.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
+			end
+		end
+
+		-- success
+		return true
+	-- silvershard mines?
+	elseif (NS.CommFlare.CF.MapID == 423) then
+		-- initialize
+		NS.CommFlare.CF.SSM = {}
+		NS.CommFlare.CF.SSM.HordeScore = L["N/A"]
+		NS.CommFlare.CF.SSM.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1687 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1687)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.SSM.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.SSM.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- temple of kotmogu?
+	elseif (NS.CommFlare.CF.MapID == 417) then
+		-- initialize
+		NS.CommFlare.CF.TOK = {}
+		NS.CommFlare.CF.TOK.HordeScore = L["N/A"]
+		NS.CommFlare.CF.TOK.AllianceScore = L["N/A"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 1689 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(1689)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.TOK.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.TOK.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+		end
+
+		-- success
+		return true
+	-- twin peaks?
+	elseif (NS.CommFlare.CF.MapID == 206) then
+		-- initialize
+		NS.CommFlare.CF.TWP = {}
+		NS.CommFlare.CF.TWP.HordeScore = L["N/A"]
+		NS.CommFlare.CF.TWP.AllianceScore = L["N/A"]
+		NS.CommFlare.CF.TWP.TimeRemaining = L["Just entered match. Gates not opened yet!"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 2 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(2)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.TWP.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.TWP.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+
+			-- 6 = widgetID for Time Remaining
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(6)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.TWP.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
+			end
+		end
+
+		-- success
+		return true
+	-- warsong gulch?
+	elseif (NS.CommFlare.CF.MapID == 1339) then
+		-- initialize
+		NS.CommFlare.CF.WSG = {}
+		NS.CommFlare.CF.WSG.HordeScore = L["N/A"]
+		NS.CommFlare.CF.WSG.AllianceScore = L["N/A"]
+		NS.CommFlare.CF.WSG.TimeRemaining = L["Just entered match. Gates not opened yet!"]
+
+		-- match started?
+		if (NS.CommFlare.CF.MatchStatus ~= 1) then
+			-- 2 = widgetID for Scores
+			NS.CommFlare.CF.WidgetInfo = GetDoubleStatusBarWidgetVisualizationInfo(2)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper scores
+				NS.CommFlare.CF.WSG.AllianceScore = NS.CommFlare.CF.WidgetInfo.leftBarValue
+				NS.CommFlare.CF.WSG.HordeScore = NS.CommFlare.CF.WidgetInfo.rightBarValue
+			end
+
+			-- 6 = widgetID for Time Remaining
+			NS.CommFlare.CF.WidgetInfo = GetIconAndTextWidgetVisualizationInfo(790)
+			if (NS.CommFlare.CF.WidgetInfo) then
+				-- set proper time
+				NS.CommFlare.CF.WSG.TimeRemaining = NS.CommFlare.CF.WidgetInfo.text
+			end
+		end
+
 		-- success
 		return true
 	end
 
-	-- not epic battleground
+	-- not reportable yet
 	return false
 end
 
 -- count stuff in battlegrounds and promote to assists
-function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
+function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
 	-- initialize full roster
 	NS.CommFlare.CF.FullRoster = {}
 
@@ -708,6 +967,24 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 	NS.CommFlare.CF.PlayerFaction = UnitFactionGroup("player")
 	NS.CommFlare.CF.PlayerInfo = PvPGetScoreInfoByPlayerGuid(UnitGUID("player"))
 	NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
+
+	-- process all raid members
+	NS.CommFlare.CF.TeamUnits = {}
+	for i=1, MAX_RAID_MEMBERS do
+		-- found player / rank?
+		local player, rank = GetRaidRosterInfo(i)
+		if (player and rank) then
+			-- force name-realm format
+			if (not strmatch(player, "-")) then
+				-- add realm name
+				player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+			end
+
+			-- save friendly unit
+			local unit = "raid" .. i
+			NS.CommFlare.CF.TeamUnits[player] = { ["unit"] = unit, ["rank"] = rank }
+		end
+	end
 
 	-- process all scores
 	for i=1, GetNumBattlefieldScores() do
@@ -774,6 +1051,7 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 			end
 
 			-- get community member
+			NS.CommunityFlare_Process_MemberGUID(info.guid, player)
 			local member = NS.CommunityFlare_GetCommunityMember(player)
 			if (member and member.name and member.clubs) then
 				-- mercenary?
@@ -835,26 +1113,41 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint)
 					tinsert(NS.CommFlare.CF.LogListNamesList, player)
 					NS.CommFlare.CF.LogListCount = NS.CommFlare.CF.LogListCount + 1
 
-					-- player has raid leader?
-					if (NS.CommFlare.CF.PlayerRank == 2) then
-						-- only allow leaders?
-						NS.CommFlare.CF.AutoPromote = false
-						if (NS.charDB.profile.communityAutoAssist == 2) then
-							-- player is community leader?
-							if (NS.CommunityFlare_IsCommunityLeader(player) == true) then
+					-- should promote?
+					if (bPromote == true) then
+						-- player has raid leader?
+						if (NS.CommFlare.CF.PlayerRank == 2) then
+							-- only allow leaders?
+							NS.CommFlare.CF.AutoPromote = false
+							if (NS.charDB.profile.communityAutoAssist == 2) then
+								-- player is community leader?
+								if (NS.CommunityFlare_IsCommunityLeader(player) == true) then
+									-- auto promote
+									NS.CommFlare.CF.AutoPromote = true
+								end
+							-- allow all members?
+							elseif (NS.charDB.profile.communityAutoAssist == 3) then
 								-- auto promote
 								NS.CommFlare.CF.AutoPromote = true
 							end
-						-- allow all members?
-						elseif (NS.charDB.profile.communityAutoAssist == 3) then
-							-- auto promote
-							NS.CommFlare.CF.AutoPromote = true
-						end
 
-						-- auto promote?
-						if (NS.CommFlare.CF.AutoPromote == true) then
-							-- promote
-							PromoteToAssistant(info.name)
+							-- auto promote?
+							if (NS.CommFlare.CF.AutoPromote == true) then
+								-- found raid unit / rank?
+								if (NS.CommFlare.CF.TeamUnits[player] and NS.CommFlare.CF.TeamUnits[player].unit and NS.CommFlare.CF.TeamUnits[player].rank) then
+									-- already assist?
+									if (NS.CommFlare.CF.TeamUnits[player].rank >= 1) then
+										-- disable promote
+										NS.CommFlare.CF.AutoPromote = false
+									end
+								end
+							end
+
+							-- auto promote?
+							if (NS.CommFlare.CF.AutoPromote == true) then
+								-- promote
+								PromoteToAssistant(info.name)
+							end
 						end
 					end
 				end
@@ -1323,7 +1616,7 @@ function NS.CommunityFlare_Get_Battleground_Status()
 		local status = NS.CommunityFlare_Get_Current_Battleground_Status()
 		if (status == true) then
 			-- update battleground stuff / counts
-			NS.CommunityFlare_Update_Battleground_Stuff(false)
+			NS.CommunityFlare_Update_Battleground_Stuff(false, false)
 
 			-- get MapID
 			NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
@@ -1354,32 +1647,6 @@ function NS.CommunityFlare_Get_Battleground_Status()
 						L["Bunkers Left"], NS.CommFlare.CF.AV.Counts.Bunkers,
 						L["Towers Left"], NS.CommFlare.CF.AV.Counts.Towers,
 						NS.CommFlare.CF.CommCount, L["Community Members"])
-				-- isle of conquest?
-				elseif (NS.CommFlare.CF.MapID == 169) then
-					-- issue capping gate request command
-					NS.CommFlare.CF.NeedAddonData = true
-					SendAddonMessage("Capping", "gr", "INSTANCE_CHAT")
-
-					-- set text to isle of conquest status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s: %d/3; %s = %s; %s: %d/3; %d %s",
-						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
-						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
-						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
-						L["Alliance"], NS.CommFlare.CF.IOC.Scores.Alliance,
-						L["Gates Destroyed"], NS.CommFlare.CF.IOC.Counts.Alliance,
-						L["Horde"], NS.CommFlare.CF.IOC.Scores.Horde,
-						L["Gates Destroyed"], NS.CommFlare.CF.IOC.Counts.Horde,
-						NS.CommFlare.CF.CommCount, L["Community Members"])
-				-- battle for wintergrasp?
-				elseif (NS.CommFlare.CF.MapID == 1334) then
-					-- set text to wintergrasp status
-					text = strformat("%s (%s): %s; %s = %d %s, %d %s; %s: %d/3; %d %s",
-						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.WG.Type,
-						NS.CommFlare.CF.WG.TimeRemaining, L["Time Elapsed"],
-						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
-						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
-						L["Towers Destroyed"], NS.CommFlare.CF.WG.Counts.Towers,
-						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- ashran?
 				elseif (NS.CommFlare.CF.MapID == 1478) then
 					-- set text to ashran status
@@ -1392,6 +1659,116 @@ function NS.CommunityFlare_Get_Battleground_Status()
 						L["Jeron"], NS.CommFlare.CF.ASH.Jeron,
 						L["Rylai"], NS.CommFlare.CF.ASH.Rylai,
 						NS.CommFlare.CF.CommCount, L["Community Members"])
+				-- battle for wintergrasp?
+				elseif (NS.CommFlare.CF.MapID == 1334) then
+					-- set text to wintergrasp status
+					text = strformat("%s (%s): %s; %s = %d %s, %d %s; %s %s; %s %s; %s: %d/3; %d %s",
+						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.WG.Type,
+						NS.CommFlare.CF.WG.TimeRemaining, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.WG.Vehicles.Alliance,
+						L["Horde"], NS.CommFlare.CF.WG.Vehicles.Horde,
+						L["Towers Destroyed"], NS.CommFlare.CF.WG.Counts.Towers,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
+				-- isle of conquest?
+				elseif (NS.CommFlare.CF.MapID == 169) then
+					-- issue capping gate request command
+					NS.CommFlare.CF.NeedAddonData = true
+					NS.CommFlare:SendCommMessage("Capping", "gr", "INSTANCE_CHAT")
+
+					-- set text to isle of conquest status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s: %d/3; %s = %s; %s: %d/3; %d %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.IOC.Scores.Alliance,
+						L["Gates Destroyed"], NS.CommFlare.CF.IOC.Counts.Alliance,
+						L["Horde"], NS.CommFlare.CF.IOC.Scores.Horde,
+						L["Gates Destroyed"], NS.CommFlare.CF.IOC.Counts.Horde,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
+				-- southshore vs tarren mill?
+				elseif (NS.CommFlare.CF.MapID == 623) then
+					-- set text to southshore vs tarren mill status
+					text = strformat("%s: %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.SSvTM.TimeRemaining,
+						L["Alliance"], NS.CommFlare.CF.SSvTM.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.SSvTM.HordeScore)
+				-- arathi basin?
+				elseif (NS.CommFlare.CF.MapID == 1366) then
+					-- set text to arathi basin status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.AB.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.AB.HordeScore)
+				-- battle for gilneas?
+				elseif (NS.CommFlare.CF.MapID == 275) then
+					-- set text to battle for gilneas status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.BFG.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.BFG.HordeScore)
+				-- deepwind gorge?
+				elseif (NS.CommFlare.CF.MapID == 1576) then
+					-- set text to deepwind gorge status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.DWG.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.DWG.HordeScore)
+				-- eye of the storm?
+				elseif (NS.CommFlare.CF.MapID == 112) then
+					-- set text to deepwind gorge status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.EOTS.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.EOTS.HordeScore)
+				-- seething shore?
+				elseif (NS.CommFlare.CF.MapID == 907) then
+					-- set text to seething shore status
+					text = strformat("%s: %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.SSH.TimeRemaining,
+						L["Alliance"], NS.CommFlare.CF.SSH.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.SSH.HordeScore)
+				-- silvershard mines?
+				elseif (NS.CommFlare.CF.MapID == 423) then
+					-- set text to deepwind gorge status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.SSM.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.SSM.HordeScore)
+				-- temple of kotmogu?
+				elseif (NS.CommFlare.CF.MapID == 417) then
+					-- set text to temple of kotmogu status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
+						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
+						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
+						L["Alliance"], NS.CommFlare.CF.TOK.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.TOK.HordeScore)
+				-- twin peaks?
+				elseif (NS.CommFlare.CF.MapID == 206) then
+					-- set text to twin peaks status
+					text = strformat("%s: %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.TWP.TimeRemaining,
+						L["Alliance"], NS.CommFlare.CF.TWP.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.TWP.HordeScore)
+				-- warsong gulch?
+				elseif (NS.CommFlare.CF.MapID == 1339) then
+					-- set text to warsong gulch status
+					text = strformat("%s: %s; %s = %s; %s = %s",
+						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.WSG.TimeRemaining,
+						L["Alliance"], NS.CommFlare.CF.WSG.AllianceScore,
+						L["Horde"], NS.CommFlare.CF.WSG.HordeScore)
 				end
 			else
 				-- set text to gates not opened yet
@@ -1412,11 +1789,9 @@ function NS.CommunityFlare_Get_Battleground_Status()
 		local reported = false
 		NS.CommFlare.CF.Leader = NS.CommunityFlare_GetPartyLeader()
 		for i=1, GetMaxBattlefieldID() do
-			-- get battleground types by name
+			-- queued and tracked?
 			local status, mapName = GetBattlefieldStatus(i)
 			local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
-
-			-- queued and tracked?
 			if ((status == "queued") and (isTracked == true)) then
 				-- reported
 				reported = true
@@ -1476,43 +1851,52 @@ end
 
 -- process status check
 function NS.CommunityFlare_Process_Status_Check(sender)
-	-- no shared community?
-	if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
-		-- finished
-		return
+	-- has sender?
+	if (sender) then
+		-- no shared community?
+		if (NS.CommunityFlare_HasSharedCommunity(sender) == false) then
+			-- finished
+			return
+		end
 	end
 
 	-- inside battleground?
 	local text = NS.CommunityFlare_Get_Battleground_Status()
 	if (type(text) == "string") then
-		-- add to table for later
-		NS.CommFlare.CF.StatusCheck[sender] = time()
+		-- has sender?
+		if (sender) then
+			-- add to table for later
+			NS.CommFlare.CF.StatusCheck[sender] = time()
+		end
 
 		-- send text to sender
 		NS.CommunityFlare_SendMessage(sender, text)
 	-- still in queue?
 	elseif (type(text) == "table") then
-		-- process all
-		local timer = 0.0
-		local reported = false
-		for k,v in pairs(text) do
-			-- reported
-			reported = true
+		-- has sender?
+		if (sender) then
+			-- process all
+			local timer = 0.0
+			local reported = false
+			for k,v in pairs(text) do
+				-- reported
+				reported = true
 
-			-- send replies staggered
-			TimerAfter(timer, function()
-				-- report queue time
-				NS.CommunityFlare_SendMessage(sender, v)
-			end)
+				-- send replies staggered
+				TimerAfter(timer, function()
+					-- report queue time
+					NS.CommunityFlare_SendMessage(sender, v)
+				end)
 
-			-- next
-			timer = timer + 0.2
-		end
+				-- next
+				timer = timer + 0.2
+			end
 
-		-- not reported?
-		if (reported == false) then
-			-- not currently in queue
-			NS.CommunityFlare_SendMessage(sender, L["Not currently in an epic battleground or queue!"])
+			-- not reported?
+			if (reported == false) then
+				-- not currently in queue
+				NS.CommunityFlare_SendMessage(sender, L["Not currently in an epic battleground or queue!"])
+			end
 		end
 	end
 end
@@ -2229,4 +2613,65 @@ function NS.CommunityFlare_Initialize_Queue_Session()
 			TimerAfter(uninviteTimer, NS.CommunityFlare_Queue_Check_Role_Chosen)
 		end
 	end
+end
+
+-- get current queues
+function NS.CommunityFlare_Get_Current_Queues()
+	-- process all
+	local message = nil
+	for k,v in pairs(NS.CommFlare.CF.LocalQueues) do
+		-- queued and tracked?
+		local status, mapName = GetBattlefieldStatus(k)
+		local isTracked, isEpicBattleground, isRandomBattleground, isBrawl = NS.CommunityFlare_IsTrackedPVP(mapName)
+		if ((status == "queued") and (isTracked == true)) then
+			-- calculate time
+			NS.CommFlare.CF.Timer.Seconds = time() - v.created
+			NS.CommFlare.CF.Timer.Minutes = mfloor(NS.CommFlare.CF.Timer.Seconds / 60)
+			NS.CommFlare.CF.Timer.Seconds = NS.CommFlare.CF.Timer.Seconds - (NS.CommFlare.CF.Timer.Minutes * 60)
+
+			-- first?
+			if (not message) then
+				-- initialize
+				message = strformat("%s: %02d:%02d", v.name, NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
+			else
+				-- initialize
+				message = strformat("%s; %s: %02d:%02d", message, v.name, NS.CommFlare.CF.Timer.Minutes, NS.CommFlare.CF.Timer.Seconds)
+			end
+		-- not queued anymore?
+		elseif (status == "none") then
+			-- clear queue
+			NS.CommFlare.CF.LocalQueues[k] = nil
+		end
+	end
+
+	-- has message?
+	if (message and (message ~= "")) then
+		-- player is horde?
+		local text = NS.CommunityFlare_GetGroupCount()
+		NS.CommFlare.CF.PlayerFaction = UnitFactionGroup("player")
+		if (NS.CommFlare.CF.PlayerFaction == L["Horde"]) then
+			-- horde
+			text = strformat("%s %s", text, L["Horde"])
+		-- player is alliance?
+		elseif (NS.CommFlare.CF.PlayerFaction == L["Alliance"]) then
+			-- alliance
+			text = strformat("%s %s", text, L["Alliance"])
+		end
+
+		-- finalize text
+		message = strformat(L["%s Currently Queued For %s."], text, message)
+
+		-- check if group has room for more
+		local maxCount = NS.CommunityFlare_GetMaxPartyCount()
+		if (NS.CommFlare.CF.Count < maxCount) then
+			-- community auto invite enabled?
+			if (NS.charDB.profile.communityAutoInvite == true) then
+				-- update message
+				message = strformat("%s (%s)", message, L["For auto invite, whisper me INV"])
+			end
+		end
+	end
+
+	-- return message
+	return message
 end

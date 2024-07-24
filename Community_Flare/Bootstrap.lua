@@ -35,7 +35,6 @@ NS.Libs = {
 	AceLocale = LibStub("AceLocale-3.0"),
 	AceSerializer = LibStub("AceSerializer-3.0"),
 	LibDeflate = LibStub("LibDeflate"),
-	LibDropDownExtension = LibStub("LibDropDownExtension-1.0"),
 }
 
 -- initialize
@@ -134,6 +133,8 @@ NS.CommFlare.CF = {
 	RosterList = {},
 	SocialQueues = {},
 	StatusCheck = {},
+	TeamUnits = {},
+	WidgetCache = {},
 	WidgetInfo = {},
 
 	-- misc stuff
@@ -142,10 +143,20 @@ NS.CommFlare.CF = {
 	Timer = { Minutes = 0, MilliSeconds = 0, Seconds = 0 },
 
 	-- battleground specific data
+	AB = {},
 	ASH = {},
 	AV = {},
+	BFG = {},
+	DWG = {},
+	EOTS = {},
 	IOC = {},
-	WG = {}
+	SSH = {},
+	SSM = {},
+	SSvTM = {},
+	TOK = {},
+	TWP = {},
+	WG = {},
+	WSG = {},
 }
 
 -- refresh config

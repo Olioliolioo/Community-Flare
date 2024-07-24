@@ -39,12 +39,20 @@ local tsort                                     = _G.table.sort
 function NS.CommunityFlare_Get_Clubs()
 	-- count eligible communities
 	local text = nil
+	local player_faction = UnitFactionGroup("player")
 	NS.CommFlare.CF.Clubs = ClubGetSubscribedClubs()
 	for k,v in ipairs(NS.CommFlare.CF.Clubs) do
 		-- community?
 		if (v.clubType == Enum.ClubType.Character) then
+			-- not cross faction?
+			local faction = nil
+			if (v.crossFaction == false) then
+				-- assume same faction as player with club
+				faction = player_faction
+			end
+	
 			-- first?
-			local current = strformat("%s,%s,%s,%s,%s,%s", tostring(v.clubId), tostring(v.name), tostring(v.shortName), tostring(v.memberCount), tostring(v.crossFaction), tostring(v.faction))
+			local current = strformat("%s,%s,%s,%s,%s,%s", tostring(v.clubId), tostring(v.name), tostring(v.shortName), tostring(v.memberCount), tostring(v.crossFaction), tostring(faction))
 			if (not text) then
 				-- initialize
 				text = current
@@ -1053,6 +1061,34 @@ function NS.CommunityFlare_Process_Club_Members()
 	return true
 end
 
+-- process member guid
+function NS.CommunityFlare_Process_MemberGUID(guid, player)
+	-- no guid?
+	if (not guid or (guid == "")) then
+		-- failed
+		return false
+	end
+
+	-- no player?
+	if (not player or (player == "")) then
+		-- failed
+		return false
+	end
+
+	-- database created?
+	if (NS.globalDB.global and NS.globalDB.global.MemberGUIDs) then
+		-- new / updated?
+		if (not NS.globalDB.global.MemberGUIDs[guid] or (NS.globalDB.global.MemberGUIDs[guid] ~= player)) then
+			-- update member
+			NS.globalDB.global.MemberGUIDs[guid] = player
+			return true
+		end
+	end
+
+	-- failed
+	return false
+end
+
 -- refresh club members
 function NS.CommunityFlare_Refresh_Club_Members()
 	-- update invisible status
@@ -1250,6 +1286,12 @@ function NS.CommunityFlare_ClubMemberUpdated(clubId, memberId)
 
 		-- member exists?
 		if (NS.globalDB.global.members[player]) then
+			-- no priority?
+			if (not NS.globalDB.global.members[player].priority) then
+				-- save default priority
+				NS.globalDB.global.members[player].priority = 999
+			end
+
 			-- valid club?
 			local rebuild = false
 			if (NS.globalDB.global.members[player].clubs and NS.globalDB.global.members[player].clubs[clubId]) then
@@ -1278,7 +1320,7 @@ function NS.CommunityFlare_ClubMemberUpdated(clubId, memberId)
 					local lowest = 999
 					for k,v in pairs(NS.globalDB.global.members[player].clubs) do
 						-- higher priority (lesser number)?
-						if ((v.priority > 0) and (v.priority < lowest)) then
+						if (v.priority and (v.priority > 0) and (v.priority < lowest)) then
 							-- update lowest
 							lowest = v.priority
 						end
@@ -1525,8 +1567,15 @@ function NS.CommunityFlare_FindCommunityMemberByGUID(guid)
 
 	-- check inside database
 	if (NS.globalDB.global.MemberGUIDs and NS.globalDB.global.MemberGUIDs[guid]) then
-		-- member found?
-		local name = NS.globalDB.global.MemberGUIDs[guid]
+		-- check inside database
+		local player = NS.globalDB.global.MemberGUIDs[guid]
+		if (player and (player ~= "") and NS.globalDB.global and NS.globalDB.global.members and NS.globalDB.global.members[player]) then
+			-- success
+			return NS.globalDB.global.members[player]
+		end
+
+		-- failed
+		return nil
 	end
 
 	-- not found?
