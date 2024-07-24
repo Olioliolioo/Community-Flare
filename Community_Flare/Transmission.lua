@@ -1113,6 +1113,9 @@ function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 		end
 	-- get queues?
 	elseif (text:find("GetQueues")) then
+		-- refresh all social queues
+		NS.CommunityFlare_RefreshAllSocialQueues()
+
 		-- find social queues by map name
 		local queues = NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
 		if (queues) then

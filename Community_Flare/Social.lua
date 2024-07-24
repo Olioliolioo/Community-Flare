@@ -23,6 +23,7 @@ local UIParentLoadAddOn                         = _G.UIParentLoadAddOn
 local UnitExists                                = _G.UnitExists
 local UnitGUID                                  = _G.UnitGUID
 local UnitName                                  = _G.UnitName
+local SocialQueueGetAllGroups                   = _G.C_SocialQueue.GetAllGroups
 local SocialQueueGetGroupInfo                   = _G.C_SocialQueue.GetGroupInfo
 local SocialQueueGetGroupMembers                = _G.C_SocialQueue.GetGroupMembers
 local SocialQueueGetGroupQueues                 = _G.C_SocialQueue.GetGroupQueues
@@ -198,7 +199,7 @@ function NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
 	local list = {}
 	for k,v in pairs (NS.CommFlare.CF.SocialQueues) do
 		-- has all needed info?
-		if (v.leader and v.leader.name and v.leader.realm and v.leader.guid and v.members) then
+		if (v.leader and v.leader.name and v.leader.realm and v.leader.guid and v.members and v.queues) then
 			-- popped?
 			local status = ""
 			if (NS.CommunityFlare_HasQueuePopped(k)) then
@@ -223,10 +224,10 @@ function NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
 							-- first?
 							if (not prefix) then
 								-- set first prefix
-								prefix = tostring(NS.CommunityFlareDetails_GetBGPrefix(v2.queueData.mapName))
+								prefix = tostring(NS.CommunityFlare_GetBGPrefix(v2.queueData.mapName))
 							else
 								-- append prefix
-								prefix = strformat("%s|%s", prefix, tostring(NS.CommunityFlareDetails_GetBGPrefix(v2.queueData.mapName)))
+								prefix = strformat("%s|%s", prefix, tostring(NS.CommunityFlare_GetBGPrefix(v2.queueData.mapName)))
 							end
 
 							-- finished
@@ -240,19 +241,18 @@ function NS.CommunityFlare_Find_Social_Queues_By_MapName(text)
 					-- has queue data?
 					if (v2.queueData and v2.queueData.mapName) then
 						-- map name matches?
-						if (mapName == v2.queueData.mapName) then
+						if ((mapName == v2.queueData.mapName) or (mapName == "all")) then
 							-- first?
 							if (not prefix) then
 								-- set first prefix
-								prefix = tostring(NS.CommunityFlareDetails_GetBGPrefix(mapName))
+								prefix = tostring(NS.CommunityFlare_GetBGPrefix(v2.queueData.mapName))
 							else
 								-- append prefix
-								prefix = strformat("%s|%s", prefix, tostring(NS.CommunityFlareDetails_GetBGPrefix(mapName)))
+								prefix = strformat("%s|%s", prefix, tostring(NS.CommunityFlare_GetBGPrefix(v2.queueData.mapName)))
 							end
 
 							-- finished
 							hasTracked = true
-							break
 						end
 					end
 				end
@@ -640,6 +640,19 @@ function NS.CommunityFlare_Update_Group(groupGUID)
 				-- group no longer exists
 				NS.CommFlare.CF.SocialQueues[groupGUID] = nil
 			end
+		end
+	end
+end
+
+-- refresh all social queues
+function NS.CommunityFlare_RefreshAllSocialQueues()
+	-- process all groups
+	local groups = SocialQueueGetAllGroups(true, true)
+	for _,v in ipairs(groups) do
+		-- not loaded yet?
+		if (not NS.CommFlare.CF.SocialQueues[v]) then
+			-- update group
+			NS.CommunityFlare_Update_Group(v)
 		end
 	end
 end

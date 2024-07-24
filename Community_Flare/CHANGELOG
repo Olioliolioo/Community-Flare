@@ -1,3 +1,6 @@
+v1.14.002 features:
+-BUGFIX: Fix some LUA bugs found due to various new systems.
+
 v1.14 features:
 -New Command: /comf report added to send your current queues to community, with auto INV message if enabled & party has room.
 -!status check for Battle for Wintergrasp now reports Vehicle counts.

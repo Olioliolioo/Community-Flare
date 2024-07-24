@@ -62,6 +62,7 @@ NS.CommFlare.CF = {
 	NeedAddonData = false,
 	Popped = false,
 	PvpLoggingCombat = false,
+	QueuePopped = false,
 	Reloaded = false,
 
 	-- numbers

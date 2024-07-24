@@ -32,6 +32,7 @@ local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
 local PromoteToAssistant                        = _G.PromoteToAssistant
 local PromoteToLeader                           = _G.PromoteToLeader
+local PVPReadyDialog                            = _G.PVPReadyDialog
 local RaidWarningFrame_OnEvent                  = _G.RaidWarningFrame_OnEvent
 local UnitFactionGroup                          = _G.UnitFactionGroup
 local UnitGUID                                  = _G.UnitGUID
@@ -73,73 +74,64 @@ local tsort                                     = _G.table.sort
 
 -- epic battlegrounds
 NS.EpicBattlegrounds = {
-	[1] = { id = 1, name = L["Random Epic Battleground"] },
-	[2] = { id = 2, name = L["Alterac Valley"] },
-	[3] = { id = 3, name = L["Isle of Conquest"] },
-	[4] = { id = 4, name = L["Battle for Wintergrasp"] },
-	[5] = { id = 5, name = L["Wintergrasp"] },
-	[6] = { id = 6, name = L["Ashran"] },
-	[7] = { id = 7, name = L["Korrak's Revenge"] },
+	["Random Epic Battleground"] = { id = 1, prefix = "EPIC" },
+	["Alterac Valley"] = { id = 2, prefix = "AV" },
+	["Isle of Conquest"] = { id = 3, prefix = "IOC" },
+	["Battle for Wintergrasp"] = { id = 4, prefix = "WG" },
+	["Wintergrasp"] = { id = 4, prefix = "WG" },
+	["Ashran"] = { id = 5, prefix = "ASH" },
+	["Korrak's Revenge"] = { id = 6, prefix = "KR" },
 }
 
 -- random battlegrounds
 NS.RandomBattlegrounds = {
-	[1] = { id = 1, name = L["Random Battleground"] },
-	[2] = { id = 2, name = L["Warsong Gulch"] },
-	[3] = { id = 3, name = L["Arathi Basin"] },
-	[4] = { id = 4, name = L["Eye of the Storm"] },
-	[5] = { id = 5, name = L["The Battle for Gilneas"] },
-	[6] = { id = 6, name = L["Twin Peaks"] },
-	[7] = { id = 7, name = L["Silvershard Mines"] },
-	[8] = { id = 8, name = L["Temple of Kotmogu"] },
-	[9] = { id = 9, name = L["Seething Shore"] },
-	[10] = { id = 10, name = L["Deepwind Gorge"] },
+	["Random Battleground"] = { id = 1, prefix = "RBG" },
+	["Warsong Gulch"] = { id = 2, prefix = "WSG" },
+	["Arathi Basin"] = { id = 3, prefix = "AB" },
+	["Eye of the Storm"] = { id = 4, prefix = "EOTS" },
+	["The Battle for Gilneas"] = { id = 5, prefix = "BFG" },
+	["Twin Peaks"] = { id = 6, prefix = "TWP" },
+	["Silvershard Mines"] = { id = 7, prefix = "SSM" },
+	["Temple of Kotmogu"] = { id = 8, prefix = "TOK" },
+	["Seething Shore"] = { id = 9, prefix = "SSH" },
+	["Deepwind Gorge"] = { id = 10, prefix = "DWG" },
 }
 
 -- brawls
 NS.Brawls = {
-	[1] = { id = 1, name = "Brawl: Arathi Blizzard" },
-	[2] = { id = 1, name = "Arathi Basin Winter" },
-	[3] = { id = 2, name = "Brawl: Classic Ashran" },
-	[4] = { id = 2, name = "Classic Ashran" },
-	[5] = { id = 3, name = "Brawl: Comp Stomp" },
-	[6] = { id = 3, name = "Comp Stomp" },
-	[7] = { id = 4, name = "Brawl: Cooking: Impossible" },
-	[8] = { id = 4, name = "Cooking: Impossible" },
-	[9] = { id = 5, name = "Brawl: Deep Six" },
-	[10] = { id = 5, name = "Deep Six" },
-	[11] = { id = 6, name = "Brawl: Deepwind Dunk" },
-	[12] = { id = 6, name = "Deepwind Dunk" },
-	[13] = { id = 7, name = "Brawl: Gravity Lapse" },
-	[14] = { id = 7, name = "Gravity Lapse" },
-	[15] = { id = 8, name = "Brawl: Packed House" },
-	[16] = { id = 8, name = "Packed House" },
-	[17] = { id = 9, name = "Brawl: Shado-Pan Showdown" },
-	[18] = { id = 9, name = "Shado-Pan Showdown" },
-	[19] = { id = 10, name = "Brawl: Southshore vs. Tarren Mill" },
-	[20] = { id = 10, name = "Southshore vs. Tarren Mill" },
-	[21] = { id = 10, name = "Hillsbrad Foothills (Southshore vs. Tarren Mill)" },
-	[22] = { id = 11, name = "Brawl: Temple of Hotmogu" },
-	[23] = { id = 11, name = "Temple of Hotmogu" },
-	[24] = { id = 12, name = "Brawl: Warsong Scramble" },
-	[25] = { id = 12, name = "Warsong Scramble" },
+	["Brawl: Arathi Blizzard"] = { id = 1, prefix = "BLIZZ" },
+	["Arathi Basin Winter"] = { id = 1, prefix = "BLIZZ" },
+	["Brawl: Classic Ashran"] = { id = 2, prefix = "CLASH" },
+	["Classic Ashran"] = { id = 2, prefix = "CLASH" },
+	["Brawl: Comp Stomp"] = { id = 3, prefix = "COMP" },
+	["Comp Stomp"] = { id = 3, prefix = "COMP" },
+	["Brawl: Cooking: Impossible"] = { id = 4, prefix = "COOK" },
+	["Cooking: Impossible"] = { id = 4, prefix = "COOK" },
+	["Brawl: Deep Six"] = { id = 5, prefix = "DEEP" },
+	["Deep Six"] = { id = 5, prefix = "DEEP" },
+	["Brawl: Deepwind Dunk"] = { id = 6, prefix = "DUNK" },
+	["Deepwind Dunk"] = { id = 6, prefix = "DUNK" },
+	["Brawl: Gravity Lapse"] = { id = 7, prefix = "GRAV" },
+	["Gravity Lapse"] = { id = 7, prefix = "GRAV" },
+	["Brawl: Packed House"] = { id = 8, prefix = "PACK" },
+	["Packed House"] = { id = 8, prefix = "PACK" },
+	["All Arenas"] = { id = 8, prefix = "PACK" },
+	["Brawl: Shado-Pan Showdown"] = { id = 9, prefix = "SHAD" },
+	["Shado-Pan Showdown"] = { id = 9, prefix = "SHAD" },
+	["Brawl: Southshore vs. Tarren Mill"] = { id = 10, prefix = "SSvTM" },
+	["Southshore vs. Tarren Mill"] = { id = 10, prefix = "SSvTM" },
+	["Brawl: Temple of Hotmogu"] = { id = 11, prefix = "BRTOH" },
+	["Temple of Hotmogu"] = { id = 11, prefix = "BRTOH" },
+	["Brawl: Warsong Scramble"] = { id = 12, prefix = "BRWSG" },
+	["Warsong Scramble"] = { id = 12, prefix = "BRWSG" },
 }
 
 -- is epic battleground?
 function NS.CommunityFlare_IsEpicBG(name)
-	-- no name given?
-	if (not name) then
-		-- nope
-		return false
-	end
-
-	-- process all epic battlegrounds
-	for k,v in ipairs(NS.EpicBattlegrounds) do
-		-- matches?
-		if (v.name == name) then
-			-- yup
-			return true
-		end
+	-- check from name
+	if (NS.EpicBattlegrounds[name] and (NS.EpicBattlegrounds[name].id > 0)) then
+		-- yup
+		return true
 	end
 
 	-- nope
@@ -148,19 +140,10 @@ end
 
 -- is random battleground?
 function NS.CommunityFlare_IsRandomBG(name)
-	-- no name given?
-	if (not name) then
-		-- nope
-		return false
-	end
-
-	-- process all random battlegrounds
-	for k,v in ipairs(NS.RandomBattlegrounds) do
-		-- matches?
-		if (v.name == name) then
-			-- yup
-			return true
-		end
+	-- check from name
+	if (NS.RandomBattlegrounds[name] and (NS.RandomBattlegrounds[name].id > 0)) then
+		-- yup
+		return true
 	end
 
 	-- nope
@@ -169,24 +152,34 @@ end
 
 -- is brawl?
 function NS.CommunityFlare_IsBrawl(name)
-	-- no name given?
-	if (not name) then
-		-- nope
-		return false
-	end
-
-
-	-- process all brawls
-	for k,v in ipairs(NS.Brawls) do
-		-- matches?
-		if (v.name == name) then
-			-- yup
-			return true
-		end
+	-- check from name
+	if (NS.Brawls[name] and (NS.Brawls[name].id > 0)) then
+		-- yup
+		return true
 	end
 
 	-- nope
 	return false
+end
+
+-- get battleground id
+function NS.CommunityFlare_GetBGID(name)
+	-- epic battleground?
+	if (NS.CommunityFlare_IsEpicBG(name) == true) then
+		-- return id
+		return NS.EpicBattlegrounds[name].id
+	-- random battleground?
+	elseif (NS.CommunityFlare_IsRandomBG(name) == true) then
+		-- return id
+		return NS.RandomBattlegrounds[name].id
+	-- brawl?
+	elseif (NS.CommunityFlare_IsBrawl(name) == true) then
+		-- return id
+		return NS.Brawls[name].id
+	else
+		-- invalid
+		return nil
+	end
 end
 
 -- is tracked pvp?
@@ -204,6 +197,26 @@ function NS.CommunityFlare_IsTrackedPVP(name)
 
 	-- nope
 	return false, nil, nil, nil
+end
+
+-- get battleground prefix
+function NS.CommunityFlare_GetBGPrefix(name)
+	-- epic battleground?
+	if (NS.CommunityFlare_IsEpicBG(name) == true) then
+		-- return prefix
+		return NS.EpicBattlegrounds[name].prefix
+	-- random battleground?
+	elseif (NS.CommunityFlare_IsRandomBG(name) == true) then
+		-- return prefix
+		return NS.RandomBattlegrounds[name].prefix
+	-- brawl?
+	elseif (NS.CommunityFlare_IsBrawl(name) == true) then
+		-- return prefix
+		return NS.Brawls[name].prefix
+	end
+
+	-- invalid
+	return nil
 end
 
 -- is mercenary queued?
@@ -2179,41 +2192,54 @@ function NS.CommunityFlare_Update_Battlefield_Status(index)
 				end)
 			else
 				-- has queue paused?
+				local popped = PVPReadyDialog:IsShown()
 				if ((suspendedQueue == true) and (NS.CommFlare.CF.LocalQueues[index].suspended == false)) then
 					-- queue has paused
 					NS.CommFlare.CF.LocalQueues[index].suspended = true
 
-					-- queue paused warning enabled?
-					if (NS.charDB.profile.warningQueuePaused == true) then
-						-- are you group leader?
-						local text = strformat(L["Queue for %s has paused!"], mapName)
-						if (NS.CommunityFlare_IsGroupLeader() == true) then
-							-- issue local raid warning (with raid warning audio sound)
-							RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", text)
+					-- queue popped window not open?
+					if (popped ~= true) then
+						-- queue paused warning enabled?
+						if (NS.charDB.profile.warningQueuePaused == true) then
+							-- are you group leader?
+							local text = strformat(L["Queue for %s has paused!"], mapName)
+							if (NS.CommunityFlare_IsGroupLeader() == true) then
+								-- issue local raid warning (with raid warning audio sound)
+								RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", text)
 
-							-- check for offline players
-							NS.CommunityFlare_Process_Party_States(false, true)
-						else
-							-- display warning
-							print(strformat("%s: %s", NS.CommunityFlare_Title, text))
+								-- check for offline players
+								NS.CommunityFlare_Process_Party_States(false, true)
+							else
+								-- display warning
+								print(strformat("%s: %s", NS.CommunityFlare_Title, text))
+							end
 						end
+					else
+						-- queue has popped
+						NS.CommFlare.CF.QueuePopped = true
 					end
 				-- has queue unpaused?
 				elseif ((suspendedQueue == false) and (NS.CommFlare.CF.LocalQueues[index].suspended == true)) then
 					-- queue has resumed
 					NS.CommFlare.CF.LocalQueues[index].suspended = false
 
-					-- queue paused warning enabled?
-					if (NS.charDB.profile.warningQueuePaused == true) then
-						-- are you group leader?
-						local text = strformat(L["Queue for %s has resumed!"], mapName)
-						if (NS.CommunityFlare_IsGroupLeader() == true) then
-							-- issue local raid warning (with raid warning audio sound)
-							RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", text)
-						else
-							-- display warning
-							print(strformat("%s: %s", NS.CommunityFlare_Title, text))
+					-- queue popped window not open?
+					if (NS.CommFlare.CF.QueuePopped ~= true) then
+						-- queue paused warning enabled?
+						if (NS.charDB.profile.warningQueuePaused == true) then
+							-- are you group leader?
+							local text = strformat(L["Queue for %s has resumed!"], mapName)
+							if (NS.CommunityFlare_IsGroupLeader() == true) then
+								-- issue local raid warning (with raid warning audio sound)
+								RaidWarningFrame_OnEvent(RaidBossEmoteFrame, "CHAT_MSG_RAID_WARNING", text)
+							else
+								-- display warning
+								print(strformat("%s: %s", NS.CommunityFlare_Title, text))
+							end
 						end
+					else
+						-- queue has not popped
+						NS.CommFlare.CF.QueuePopped = false
 					end
 				end
 			end

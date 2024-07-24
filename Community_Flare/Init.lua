@@ -344,7 +344,6 @@ end
 -- load session variables
 function NS.CommunityFlare_LoadSession()
 	-- load global stuff
-	print("LoadSession")
 	NS.CommFlare.CF.SocialQueues = NS.globalDB.global.SocialQueues or {}
 
 	-- load profile stuff
