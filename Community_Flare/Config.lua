@@ -613,7 +613,7 @@ NS.defaults = {
 		popupQueueWindow = false,
 		printDebugInfo = false,
 		pvpCombatLogging = false,
-		restrictPings = false,
+		restrictPings = 0,
 		uninvitePlayersAFK = 0,
 		warningLeavingBG = 2,
 		warningQueuePaused = true,
@@ -944,9 +944,23 @@ NS.options = {
 					get = function(info) return NS.charDB.profile.adjustVehicleTurnSpeed end,
 					set = function(info, value) NS.charDB.profile.adjustVehicleTurnSpeed = value end,
 				},
-				warningLeavingBG = {
+				restrictPings = {
 					type = "select",
 					order = 4,
+					name = L["Restrict /ping system to?"],
+					desc = L["This will block players from using the /ping system if they do not have raid assist or raid lead."],
+					values = {
+						[0] = L["None"],
+						[1] = L["Leaders Only"],
+						[2] = L["Assistants Only"],
+						[3] = L["Tanks & Healers Only"],
+					},
+					get = function(info) return NS.charDB.profile.restrictPings end,
+					set = function(info, value) NS.charDB.profile.restrictPings = value end,
+				},
+				warningLeavingBG = {
+					type = "select",
+					order = 5,
 					name = L["Warn before hearth stoning or teleporting inside a battleground?"],
 					desc = L["Performs an action if you are about to hearth stone or teleport out of an active battleground."],
 					values = {
@@ -958,7 +972,7 @@ NS.options = {
 				},
 				communityLogList = {
 					type = "multiselect",
-					order = 5,
+					order = 6,
 					name = L["Log roster list for matches from these communities?"],
 					desc = L["Choose the communities that you want to save a roster list upon the gate opening in battlegrounds."],
 					values = NS.CommunityFlare_Setup_Community_List,
@@ -968,21 +982,12 @@ NS.options = {
 				},
 				communityDisplayNames = {
 					type = "toggle",
-					order = 6,
+					order = 7,
 					name = L["Display community member names when running /comf command?"],
 					desc = L["This will automatically display all community members found in the battleground when the /comf command is run."],
 					width = "full",
 					get = function(info) return NS.charDB.profile.communityDisplayNames end,
 					set = function(info, value) NS.charDB.profile.communityDisplayNames = value end,
-				},
-				restrictPings = {
-					type = "toggle",
-					order = 7,
-					name = L["Restrict players from using the /ping system?"],
-					desc = L["This will block players from using the /ping system if they do not have raid assist or raid lead."],
-					width = "full",
-					get = function(info) return NS.charDB.profile.restrictPings end,
-					set = function(info, value) NS.charDB.profile.restrictPings = value end,
 				},
 				pvpCombatLogging = {
 					type = "toggle",

@@ -13,6 +13,7 @@ local _G                                        = _G
 local GetBattlefieldInstanceRunTime             = _G.GetBattlefieldInstanceRunTime
 local GetNumBattlefieldScores                   = _G.GetNumBattlefieldScores
 local PVPMatchScoreboard                        = _G.PVPMatchScoreboard
+local RequestBattlefieldScoreData               = _G.RequestBattlefieldScoreData
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local PvPGetActiveMatchState                    = _G.C_PvP.GetActiveMatchState
 local PvPGetScoreInfo                           = _G.C_PvP.GetScoreInfo
@@ -57,8 +58,9 @@ function NS.CommunityFlare_Process_Debug_Command(sender, args)
 		-- battlefield score needs updating?
 		local timer = 0.0
 		if (PVPMatchScoreboard.selectedTab ~= 1) then
-			-- update battlefield score
+			-- request battlefield score
 			SetBattlefieldScoreFaction(-1)
+			RequestBattlefieldScoreData()
 
 			-- delay 0.5 seconds
 			timer = 0.5

@@ -1703,85 +1703,95 @@ function NS.CommunityFlare_Get_Battleground_Status()
 				-- southshore vs tarren mill?
 				elseif (NS.CommFlare.CF.MapID == 623) then
 					-- set text to southshore vs tarren mill status
-					text = strformat("%s: %s; %s = %s; %s = %s",
+					text = strformat("%s: %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.SSvTM.TimeRemaining,
 						L["Alliance"], NS.CommFlare.CF.SSvTM.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.SSvTM.HordeScore)
+						L["Horde"], NS.CommFlare.CF.SSvTM.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- arathi basin?
 				elseif (NS.CommFlare.CF.MapID == 1366) then
 					-- set text to arathi basin status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.AB.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.AB.HordeScore)
+						L["Horde"], NS.CommFlare.CF.AB.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- battle for gilneas?
 				elseif (NS.CommFlare.CF.MapID == 275) then
 					-- set text to battle for gilneas status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.BFG.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.BFG.HordeScore)
+						L["Horde"], NS.CommFlare.CF.BFG.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- deepwind gorge?
 				elseif (NS.CommFlare.CF.MapID == 1576) then
 					-- set text to deepwind gorge status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.DWG.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.DWG.HordeScore)
+						L["Horde"], NS.CommFlare.CF.DWG.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- eye of the storm?
 				elseif (NS.CommFlare.CF.MapID == 112) then
-					-- set text to deepwind gorge status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					-- set text to eye of the storm status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.EOTS.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.EOTS.HordeScore)
+						L["Horde"], NS.CommFlare.CF.EOTS.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- seething shore?
 				elseif (NS.CommFlare.CF.MapID == 907) then
 					-- set text to seething shore status
-					text = strformat("%s: %s; %s = %s; %s = %s",
+					text = strformat("%s: %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.SSH.TimeRemaining,
 						L["Alliance"], NS.CommFlare.CF.SSH.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.SSH.HordeScore)
+						L["Horde"], NS.CommFlare.CF.SSH.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- silvershard mines?
 				elseif (NS.CommFlare.CF.MapID == 423) then
-					-- set text to deepwind gorge status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					-- set text to silvershard mines status
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.SSM.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.SSM.HordeScore)
+						L["Horde"], NS.CommFlare.CF.SSM.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- temple of kotmogu?
 				elseif (NS.CommFlare.CF.MapID == 417) then
 					-- set text to temple of kotmogu status
-					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s",
+					text = strformat("%s: %s = %d %s, %d %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, L["Time Elapsed"],
 						NS.CommFlare.CF.Timer.Minutes, L["minutes"],
 						NS.CommFlare.CF.Timer.Seconds, L["seconds"],
 						L["Alliance"], NS.CommFlare.CF.TOK.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.TOK.HordeScore)
+						L["Horde"], NS.CommFlare.CF.TOK.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- twin peaks?
 				elseif (NS.CommFlare.CF.MapID == 206) then
 					-- set text to twin peaks status
-					text = strformat("%s: %s; %s = %s; %s = %s",
+					text = strformat("%s: %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.TWP.TimeRemaining,
 						L["Alliance"], NS.CommFlare.CF.TWP.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.TWP.HordeScore)
+						L["Horde"], NS.CommFlare.CF.TWP.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				-- warsong gulch?
 				elseif (NS.CommFlare.CF.MapID == 1339) then
 					-- set text to warsong gulch status
-					text = strformat("%s: %s; %s = %s; %s = %s",
+					text = strformat("%s: %s; %s = %s; %s = %s; %d %s",
 						NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.WSG.TimeRemaining,
 						L["Alliance"], NS.CommFlare.CF.WSG.AllianceScore,
-						L["Horde"], NS.CommFlare.CF.WSG.HordeScore)
+						L["Horde"], NS.CommFlare.CF.WSG.HordeScore,
+						NS.CommFlare.CF.CommCount, L["Community Members"])
 				end
 			else
 				-- set text to gates not opened yet

@@ -21,6 +21,7 @@ local GetNumSubgroupMembers                     = _G.GetNumSubgroupMembers
 local GetPlayerInfoByGUID                       = _G.GetPlayerInfoByGUID
 local IsInGroup                                 = _G.IsInGroup
 local IsInRaid                                  = _G.IsInRaid
+local RequestBattlefieldScoreData               = _G.RequestBattlefieldScoreData
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local UnitGUID                                  = _G.UnitGUID
 local UnitName                                  = _G.UnitName
@@ -1129,8 +1130,9 @@ function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5
@@ -1153,8 +1155,9 @@ function NS.CommunityFlare_Process_BattleNET_Commands(senderID, text)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5

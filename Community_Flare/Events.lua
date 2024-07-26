@@ -43,6 +43,7 @@ local PlayerSpellsFrame_LoadUI                  = _G.PlayerSpellsFrame_LoadUI
 local PromoteToAssistant                        = _G.PromoteToAssistant
 local PVPMatchScoreboard                        = _G.PVPMatchScoreboard
 local RaidWarningFrame_OnEvent                  = _G.RaidWarningFrame_OnEvent
+local RequestBattlefieldScoreData               = _G.RequestBattlefieldScoreData
 local RespondToInviteConfirmation               = _G.RespondToInviteConfirmation
 local SetBattlefieldScoreFaction                = _G.SetBattlefieldScoreFaction
 local SocialQueueUtil_GetRelationshipInfo       = _G.SocialQueueUtil_GetRelationshipInfo
@@ -981,8 +982,9 @@ function NS.CommFlare:CHAT_MSG_BN_WHISPER(msg, ...)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5
@@ -1048,8 +1050,9 @@ function NS.CommunityFlare_Event_Chat_Message_Party(...)
 				if (PvPIsBattleground() == true) then
 					-- battlefield score needs updating?
 					if (PVPMatchScoreboard.selectedTab ~= 1) then
-						-- update battlefield score
+						-- request battlefield score
 						SetBattlefieldScoreFaction(-1)
+						RequestBattlefieldScoreData()
 
 						-- delay 0.5 seconds
 						timer = 0.5
@@ -1090,12 +1093,12 @@ function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 	-- notify system has been enabled?
 	elseif (text == PVP_REPORT_AFK_SYSTEM_ENABLED) then
 		-- restrict pings?
-		if (NS.charDB.profile.restrictPings == true) then
+		if (NS.charDB.profile.restrictPings) then
 			-- does player have raid leadership or assistant?
 			NS.CommFlare.CF.PlayerRank = NS.CommunityFlare_GetRaidRank(UnitName("player"))
 			if (NS.CommFlare.CF.PlayerRank > 0) then
-				-- enable restrict pings
-				PartyInfoSetRestrictPings(true)
+				-- set restrict pings
+				PartyInfoSetRestrictPings(NS.charDB.profile.restrictPings)
 			end
 		end
 
@@ -1112,8 +1115,9 @@ function NS.CommFlare:CHAT_MSG_SYSTEM(msg, ...)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5
@@ -1150,8 +1154,9 @@ function NS.CommFlare:CHAT_MSG_WHISPER(msg, ...)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5
@@ -2297,8 +2302,9 @@ function NS.CommFlare:PVP_MATCH_COMPLETE(msg, ...)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5
@@ -2830,6 +2836,11 @@ function NS.CommFlare:UNIT_SPELLCAST_START(msg, ...)
 	end
 end
 
+-- process update battlefield score
+function NS.CommFlare:UPDATE_BATTLEFIELD_SCORE(msg)
+	-- TODO: Track players entering / leaving?
+end
+
 -- process update battlefield status
 function NS.CommFlare:UPDATE_BATTLEFIELD_STATUS(msg, ...)
 	-- sanity check
@@ -2894,6 +2905,7 @@ function NS.CommFlare:OnEnable()
 	self:RegisterEvent("UNIT_ENTERED_VEHICLE")
 	self:RegisterEvent("UNIT_EXITED_VEHICLE")
 	self:RegisterEvent("UNIT_SPELLCAST_START")
+	self:RegisterEvent("UPDATE_BATTLEFIELD_SCORE")
 	self:RegisterEvent("UPDATE_BATTLEFIELD_STATUS")
 end
 
@@ -2948,6 +2960,7 @@ function NS.CommFlare:OnDisable()
 	self:UnregisterEvent("UNIT_ENTERED_VEHICLE")
 	self:UnregisterEvent("UNIT_EXITED_VEHICLE")
 	self:UnregisterEvent("UNIT_SPELLCAST_START")
+	self:UnregisterEvent("UPDATE_BATTLEFIELD_SCORE")
 	self:UnregisterEvent("UPDATE_BATTLEFIELD_STATUS")
 end
 
@@ -3073,8 +3086,9 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		if (PvPIsBattleground() == true) then
 			-- battlefield score needs updating?
 			if (PVPMatchScoreboard.selectedTab ~= 1) then
-				-- update battlefield score
+				-- request battlefield score
 				SetBattlefieldScoreFaction(-1)
+				RequestBattlefieldScoreData()
 
 				-- delay 0.5 seconds
 				timer = 0.5

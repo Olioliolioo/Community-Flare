@@ -20,6 +20,11 @@ Quite a few other Quality of Life features and/or parts of the above core that i
 -----------------------
 Latest Updates:
 -----------------------
+v1.14.003 features:
+-!status check now reports number of Community Members in the Battleground for all maps.
+-BUGFIX: Restrict /ping system to? updated to new system. (None, Leaders Only, Assistants Only, Tanks & Healers Only)
+-BUGFIX: Some more LUA bugs found due to various new systems.
+
 v1.14.002 features:
 -BUGFIX: Fix some LUA bugs found due to various new systems.
 
