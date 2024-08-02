@@ -1,3 +1,9 @@
+v1.15.001 features:
+-New Option: Always pass Raid Leadership to Community Leaders? (Passes Raid Leadership to Community Leaders by priority if enabled.)
+-New Debug Command: /comf pois to view all points of interest in your current location.
+-New Debug Command: /comf popped to view all currently popped groups, if there are any.
+-New Debug Command: /comf vignettes to view all vignettes in your current location.
+
 v1.14.003 features:
 -!status check now reports number of Community Members in the Battleground for all maps.
 -BUGFIX: Restrict /ping system to? updated to new system. (None, Leaders Only, Assistants Only, Tanks & Healers Only)

@@ -75,6 +75,8 @@ local PvPGetScoreInfo                           = _G.C_PvP.GetScoreInfo
 local PvPGetScoreInfoByPlayerGuid               = _G.C_PvP.GetScoreInfoByPlayerGuid
 local PvPIsArena                                = _G.C_PvP.IsArena
 local PvPIsBattleground                         = _G.C_PvP.IsBattleground
+local VignetteInfoGetVignettes                  = _G.C_VignetteInfo.GetVignettes
+local VignetteInfoGetVignetteInfo               = _G.C_VignetteInfo.GetVignetteInfo
 local Settings_OpenToCategory                   = _G.Settings.OpenToCategory
 local SocialQueueGetGroupInfo                   = _G.C_SocialQueue.GetGroupInfo
 local SocialQueueGetGroupQueues                 = _G.C_SocialQueue.GetGroupQueues
@@ -100,6 +102,7 @@ local strsplit                                  = _G.string.split
 -- list current POI's
 function NS.CommunityFlare_List_POIs()
 	-- get map id
+	print(L["Dumping POIs:"])
 	NS.CommFlare.CF.MapID = MapGetBestMapForUnit("player")
 	if (not NS.CommFlare.CF.MapID) then
 		-- not found
@@ -121,7 +124,7 @@ function NS.CommunityFlare_List_POIs()
 	local pois = AreaPoiInfoGetAreaPOIForMap(NS.CommFlare.CF.MapID)
 	if (pois and (#pois > 0)) then
 		-- display infos
-		print(strformat("Count: %d", #pois))
+		print(strformat(L["Count: %d"], #pois))
 		for _,v in ipairs(pois) do
 			NS.CommFlare.CF.POIInfo = AreaPoiInfoGetAreaPOIInfo(NS.CommFlare.CF.MapID, v)
 			if (NS.CommFlare.CF.POIInfo) then
@@ -136,7 +139,25 @@ function NS.CommunityFlare_List_POIs()
 		end
 	else
 		-- none found
-		print(L["Count: %d"], 0)
+		print(strformat(L["Count: %d"], 0))
+	end
+end
+
+-- list current vignettes
+function NS.CommunityFlare_List_Vignettes()
+	-- process any vignettes
+	print(L["Dumping Vignettes:"])
+	local vignetteGUIDs = VignetteInfoGetVignettes()
+	if (vignetteGUIDs and (#vignetteGUIDs > 0)) then
+		-- display infos
+		print(strformat(L["Count: %d"], #vignetteGUIDs))
+		for _,v in ipairs(vignetteGUIDs) do
+			local vignetteInfo = VignetteInfoGetVignetteInfo(v)
+			print(strformat("%s: ID = %d, GUID = %s", vignetteInfo.name, vignetteInfo.vignetteID, vignetteInfo.vignetteGUID))
+		end
+	else
+		-- none found
+		print(strformat(L["Count: %d"], 0))
 	end
 end
 
@@ -1712,18 +1733,21 @@ function NS.CommFlare:GROUP_ROSTER_UPDATE(msg)
 					end
 				end
 
-				-- process all community leaders
-				for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
-					-- already leader?
-					if (player == v) then
-						-- success
-						break
-					end
+				-- auto pass raid leader?
+				if (NS.charDB.profile.communityAutoPassLead == true) then
+					-- process all community leaders
+					for _,v in ipairs(NS.CommFlare.CF.CommunityLeaders) do
+						-- already leader?
+						if (player == v) then
+							-- success
+							break
+						end
 
-					-- promote this leader
-					if (NS.CommunityFlare_PromoteToRaidLeader(v) == true) then
-						-- success
-						break
+						-- promote this leader
+						if (NS.CommunityFlare_PromoteToRaidLeader(v) == true) then
+							-- success
+							break
+						end
 					end
 				end
 			end
@@ -2242,6 +2266,7 @@ end
 -- process pvp match active
 function NS.CommFlare:PVP_MATCH_ACTIVE(msg)
 	-- initialize
+	NS.CommFlare.CF.FullRoster = {}
 	NS.CommFlare.CF.RosterList = {}
 	NS.CommunityFlare_Initialize_Battleground_Status()
 
@@ -2838,7 +2863,24 @@ end
 
 -- process update battlefield score
 function NS.CommFlare:UPDATE_BATTLEFIELD_SCORE(msg)
-	-- TODO: Track players entering / leaving?
+	-- match still going?
+	if (NS.CommFlare.CF.MatchStatus < 3) then
+		-- process all scores
+		for i=1, GetNumBattlefieldScores() do
+			local info = PvPGetScoreInfo(i)
+			if (info) then
+				-- force name-realm format
+				local player = info.name
+				if (not strmatch(player, "-")) then
+					-- add realm name
+					player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+				end
+
+				-- add to full roster
+				NS.CommFlare.CF.FullRoster[player] = info
+			end
+		end
+	end
 end
 
 -- process update battlefield status
@@ -3030,7 +3072,7 @@ function NS.CommFlare:Community_Flare_OnCommReceived(prefix, message, distributi
 					-- sender not found?
 					if (not member2) then
 						-- force max priority
-						member2 = { ["priority"] = 999 }
+						member2 = { ["priority"] = NS.CommFlare.CF.MaxPriority }
 					-- no priority?
 					elseif (not member2.priority) then
 						-- force max priority
@@ -3132,7 +3174,11 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		else
 			-- split groups
 			local groups = strsplit(";", popped)
-			DevTools_Dump(groups)
+			for k,v in pairs(groups) do
+				-- display group
+				local mapName, partyGUID, leaderGUID, leaderName, leaderRealm, count = strsplit(",", v)
+				print(strformat("%s: %s-%s (%s) [%s]", L["POPPED"], leaderName, leaderRealm, count, mapName))
+			end
 		end
 	elseif (lower == "report") then
 		-- has last report message?
@@ -3162,6 +3208,9 @@ function NS.CommFlare:Community_Flare_Slash_Command(input)
 		-- display usages
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["CPU Usage"], GetAddOnCPUUsage(ADDON_NAME)))
 		print(strformat("%s: %s = %d", NS.CommunityFlare_Title, L["Memory Usage"], GetAddOnMemoryUsage(ADDON_NAME)))
+	elseif (lower == "vignettes") then
+		-- list all Vignette's
+		NS.CommunityFlare_List_Vignettes()
 	else
 		-- split words
 		local first, second, third = strsplit(" ", input)

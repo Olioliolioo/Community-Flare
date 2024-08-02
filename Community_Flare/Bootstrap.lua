@@ -46,6 +46,7 @@ NS.CommFlare.CF = {
 	MatchStartDate = "",
 	PlayerFaction = "",
 	PlayerServerName = "",
+	RaidLeader = "N/A",
 	TurnSpeed = "",
 
 	-- booleans
@@ -114,6 +115,7 @@ NS.CommFlare.CF = {
 	CommNamesList = {},
 	CommunityLeaders = {},
 	CurrentPopped = {},
+	FullRoster = {},
 	InternalCommands = {},
 	LocalData = {},
 	LocalQueues = {},

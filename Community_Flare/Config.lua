@@ -599,6 +599,7 @@ NS.defaults = {
 		bnetAutoQueue = true,
 		communityAutoAssist = 2,
 		communityAutoInvite = true,
+		communityAutoPassLead = true,
 		communityAutoQueue = true,
 		communityDisplayNames = true,
 		communityPartyLeader = false,
@@ -980,9 +981,18 @@ NS.options = {
 					get = NS.CommunityFlare_Community_List_Get_Item,
 					set = NS.CommunityFlare_Community_List_Set_Item,
 				},
-				communityDisplayNames = {
+				communityAutoPassLead = {
 					type = "toggle",
 					order = 7,
+					name = L["Always pass Raid Leadership to Community Leaders?"],
+					desc = L["This will automatically pass Raid Leadership inside Battlegrounds to Community Leaders by priority levels."],
+					width = "full",
+					get = function(info) return NS.charDB.profile.communityAutoPassLead end,
+					set = function(info, value) NS.charDB.profile.communityAutoPassLead = value end,
+				},
+				communityDisplayNames = {
+					type = "toggle",
+					order = 8,
 					name = L["Display community member names when running /comf command?"],
 					desc = L["This will automatically display all community members found in the battleground when the /comf command is run."],
 					width = "full",
@@ -991,7 +1001,7 @@ NS.options = {
 				},
 				pvpCombatLogging = {
 					type = "toggle",
-					order = 8,
+					order = 9,
 					name = L["Always save Combat Log inside PVP content?"],
 					desc = L["This will automatically enable the combat logging to WowCombatLog while inside an arena or battleground."],
 					width = "full",
@@ -1000,7 +1010,7 @@ NS.options = {
 				},
 				blockGameMenuHotKeys = {
 					type = "toggle",
-					order = 9,
+					order = 10,
 					name = L["Block game menu hotkeys inside PVP content?"],
 					desc = L["This will block the game menus from coming up inside an arena or battleground from pressing their hot keys. (To block during recording videos for example.)"],
 					width = "full",

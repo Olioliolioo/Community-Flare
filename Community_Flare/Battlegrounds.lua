@@ -943,9 +943,6 @@ end
 
 -- count stuff in battlegrounds and promote to assists
 function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
-	-- initialize full roster
-	NS.CommFlare.CF.FullRoster = {}
-
 	-- initialize community stuff
 	NS.CommFlare.CF.CommCount = 0
 	NS.CommFlare.CF.CommCounts = {}
@@ -983,6 +980,7 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
 
 	-- process all raid members
 	NS.CommFlare.CF.TeamUnits = {}
+	NS.CommFlare.CF.RaidLeader = L["N/A"]
 	for i=1, MAX_RAID_MEMBERS do
 		-- found player / rank?
 		local player, rank = GetRaidRosterInfo(i)
@@ -991,6 +989,12 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
 			if (not strmatch(player, "-")) then
 				-- add realm name
 				player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+			end
+
+			-- is this player leader?
+			if (rank == 2) then
+				-- save raid leader
+				NS.CommFlare.CF.RaidLeader = player
 			end
 
 			-- save friendly unit
@@ -1003,8 +1007,12 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
 	for i=1, GetNumBattlefieldScores() do
 		local info = PvPGetScoreInfo(i)
 		if (info) then
-			-- save to full roster
-			tinsert(NS.CommFlare.CF.FullRoster, info)
+			-- force name-realm format
+			local player = info.name
+			if (not strmatch(player, "-")) then
+				-- add realm name
+				player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
+			end
 
 			-- has talent specialization?
 			NS.CommFlare.CF.IsTank = false
@@ -1054,13 +1062,6 @@ function NS.CommunityFlare_Update_Battleground_Stuff(isPrint, bPromote)
 					-- mercenary
 					mercenary = true
 				end
-			end
-
-			-- force name-realm format
-			local player = info.name
-			if (not strmatch(player, "-")) then
-				-- add realm name
-				player = player .. "-" .. NS.CommFlare.CF.PlayerServerName
 			end
 
 			-- get community member
@@ -1386,7 +1387,7 @@ function NS.CommunityFlare_Log_Match_List(list)
 	local player = NS.CommunityFlare_GetPlayerName("full")
 	local entry = {
 		["timestamp"] = timestamp,
-		["message"] = strformat(L["Date: %s; MapName: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapInfo.name, player, list),
+		["message"] = strformat(L["Date: %s; MapName: %s; Raid Leader: %s; Player: %s; Roster: %s"], NS.CommFlare.CF.MatchStartDate, NS.CommFlare.CF.MapInfo.name, NS.CommFlare.CF.RaidLeader, player, list),
 	}
 
 	-- insert
